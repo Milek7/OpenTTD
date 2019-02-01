@@ -221,8 +221,19 @@ static void PopupMainCompanyToolbMenu(Window *w, int widget, int grey = 0)
 
 	switch (widget) {
 		case WID_TN_COMPANIES:
-			if (!_networking) break;
-
+			if (!_networking) {
+				if (_local_company == COMPANY_SPECTATOR) {
+					bool human = false;
+					for (CompanyID c = COMPANY_FIRST; c < MAX_COMPANIES; c++) {
+						if (Company::IsValidHumanID(c)) {
+							human = true;
+							break;
+						}
+					}
+					if (!human) list.emplace_back(new DropDownListStringItem(STR_NETWORK_COMPANY_LIST_NEW_COMPANY, CTMN_NEW_COMPANY, Company::GetNumItems() >= MAX_COMPANIES));
+				}
+				break;
+			}
 			/* Add the client list button for the companies menu */
 			list.emplace_back(new DropDownListStringItem(STR_NETWORK_COMPANY_LIST_CLIENT_LIST, CTMN_CLIENT_LIST, false));
 
@@ -630,6 +641,17 @@ static CallBackFunction MenuClickCompany(int index)
 				return CBF_NONE;
 		}
 	}
+
+	if (!_networking && _local_company == COMPANY_SPECTATOR) {
+		if (index == CTMN_NEW_COMPANY) {
+			extern Company *DoStartupNewCompany(bool is_ai, CompanyID company = INVALID_COMPANY);
+			Company *c = DoStartupNewCompany(false);
+			c->settings = _settings_client.company;
+			SetLocalCompany(c->index);
+			return CBF_NONE;
+		}
+	}
+
 	ShowCompany((CompanyID)index);
 	return CBF_NONE;
 }
