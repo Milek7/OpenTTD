@@ -40,7 +40,7 @@ public:
 	const char *GetName() const override { return "sdl"; }
 private:
 	int PollEvent();
-	bool CreateMainSurface(uint w, uint h);
+	bool CreateMainSurface(uint w, uint h, bool resize);
 };
 
 /** Factory for the SDL video driver. */
