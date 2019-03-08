@@ -48,8 +48,6 @@ static SDL_Palette *_sdl_palette;
 #define MAX_DIRTY_RECTS 100
 static SDL_Rect _dirty_rects[MAX_DIRTY_RECTS];
 static int _num_dirty_rects;
-static int _use_hwpalette;
-static int _requested_hwpalette; /* Did we request a HWPALETTE for the current video mode? */
 
 /* Size of window */
 static int _window_size_w;
@@ -260,7 +258,6 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 	SDL_Surface *newscreen;
 	char caption[50];
 	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
-	bool want_hwpalette;
 
 	GetAvailableVideoMode(&w, &h);
 
@@ -268,60 +265,8 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 
 	if (bpp == 0) usererror("Can't use a blitter that blits 0 bpp for normal visuals");
 
-	if (_use_hwpalette == 2) {
-		/* Default is to autodetect when to use SDL_HWPALETTE.
-		 * In this case, SDL_HWPALETTE is only used for 8bpp
-		 * blitters in fullscreen.
-		 *
-		 * When using an 8bpp blitter on a 8bpp system in
-		 * windowed mode with SDL_HWPALETTE, OpenTTD will claim
-		 * the system palette, making all other applications
-		 * get the wrong colours. In this case, we're better of
-		 * trying to approximate the colors we need using system
-		 * colors, using a shadow surface (see below).
-		 *
-		 * On a 32bpp system, SDL_HWPALETTE is ignored, so it
-		 * doesn't matter what we do.
-		 *
-		 * When using a 32bpp blitter on a 8bpp system, setting
-		 * SDL_HWPALETTE messes up rendering (at least on X11),
-		 * so we don't do that. In this case, SDL takes care of
-		 * color approximation using its own shadow surface
-		 * (which we can't force in 8bpp on 8bpp mode,
-		 * unfortunately).
-		 */
-		want_hwpalette = bpp == 8 && _fullscreen && _support8bpp == S8BPP_HARDWARE;
-	} else {
-		/* User specified a value manually */
-		want_hwpalette = _use_hwpalette;
-	}
-
-	if (want_hwpalette) DEBUG(driver, 1, "SDL: requesting hardware palette");
-
 	/* Free any previously allocated shadow surface */
 	if (_sdl_surface != NULL && _sdl_surface != _sdl_realscreen) SDL_FreeSurface(_sdl_surface);
-
-	if (_sdl_realscreen != NULL) {
-		if (_requested_hwpalette != want_hwpalette) {
-			/* SDL (at least the X11 driver), reuses the
-			 * same window and palette settings when the bpp
-			 * (and a few flags) are the same. Since we need
-			 * to hwpalette value to change (in particular
-			 * when switching between fullscreen and
-			 * windowed), we restart the entire video
-			 * subsystem to force creating a new window.
-			 */
-			DEBUG(driver, 0, "SDL: Restarting SDL video subsystem, to force hwpalette change");
-			SDL_QuitSubSystem(SDL_INIT_VIDEO);
-			SDL_InitSubSystem(SDL_INIT_VIDEO);
-			ClaimMousePointer();
-		}
-	}
-	/* Remember if we wanted a hwpalette. We can't reliably query
-	 * SDL for the SDL_HWPALETTE flag, since it might get set even
-	 * though we didn't ask for it (when SDL creates a shadow
-	 * surface, for example). */
-	_requested_hwpalette = want_hwpalette;
 
 	seprintf(caption, lastof(caption), "OpenTTD %s", _openttd_revision);
 
@@ -660,8 +605,6 @@ int VideoDriver_SDL::PollEvent()
 
 const char *VideoDriver_SDL::Start(const char * const *parm)
 {
-	_use_hwpalette = GetDriverParamInt(parm, "hw_palette", 2);
-
 	/* Just on the offchance the audio subsystem started before the video system,
 	 * check whether any part of SDL has been initialised before getting here.
 	 * Slightly duplicated with sound/sdl_s.cpp */
