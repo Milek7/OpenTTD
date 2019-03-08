@@ -257,7 +257,7 @@ static void GetAvailableVideoMode(uint *w, uint *h)
 
 bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 {
-	SDL_Surface *newscreen, *icon;
+	SDL_Surface *newscreen;
 	char caption[50];
 	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
 	bool want_hwpalette;
@@ -267,20 +267,6 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 	DEBUG(driver, 1, "SDL: using mode %ux%ux%d", w, h, bpp);
 
 	if (bpp == 0) usererror("Can't use a blitter that blits 0 bpp for normal visuals");
-
-	char icon_path[MAX_PATH];
-	if (FioFindFullPath(icon_path, lastof(icon_path), BASESET_DIR, "openttd.32.bmp") != NULL) {
-		/* Give the application an icon */
-		icon = SDL_LoadBMP(icon_path);
-		if (icon != NULL) {
-			/* Get the colourkey, which will be magenta */
-			uint32 rgbmap = SDL_MapRGB(icon->format, 255, 0, 255);
-
-			SDL_SetColorKey(icon, SDL_TRUE, rgbmap);
-			SDL_SetWindowIcon(_sdl_window, icon);
-			SDL_FreeSurface(icon);
-		}
-	}
 
 	if (_use_hwpalette == 2) {
 		/* Default is to autodetect when to use SDL_HWPALETTE.
@@ -354,11 +340,25 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 			SDL_WINDOWPOS_UNDEFINED,
 			w, h,
 			flags);
-	}
 
-	if (_sdl_window == NULL) {
-		DEBUG(driver, 0, "SDL: Couldn't allocate a window to draw on");
-		return false;
+		if (_sdl_window == NULL) {
+			DEBUG(driver, 0, "SDL: Couldn't allocate a window to draw on");
+			return false;
+		}
+
+		char icon_path[MAX_PATH];
+		if (FioFindFullPath(icon_path, lastof(icon_path), BASESET_DIR, "openttd.32.bmp") != NULL) {
+			/* Give the application an icon */
+			SDL_Surface *icon = SDL_LoadBMP(icon_path);
+			if (icon != NULL) {
+				/* Get the colourkey, which will be magenta */
+				uint32 rgbmap = SDL_MapRGB(icon->format, 255, 0, 255);
+
+				SDL_SetColorKey(icon, SDL_TRUE, rgbmap);
+				SDL_SetWindowIcon(_sdl_window, icon);
+				SDL_FreeSurface(icon);
+			}
+		}
 	}
 
 	if (resize) SDL_SetWindowSize(_sdl_window, w, h);
