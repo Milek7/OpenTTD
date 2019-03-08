@@ -273,7 +273,7 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 		Uint32 flags = SDL_WINDOW_SHOWN;
 
 		if (_fullscreen) {
-			flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+			flags |= SDL_WINDOW_FULLSCREEN;
 		} else {
 			flags |= SDL_WINDOW_RESIZABLE;
 		}
@@ -782,10 +782,20 @@ bool VideoDriver_SDL::ToggleFullscreen(bool fullscreen)
 	if (_draw_mutex != nullptr) lock = std::unique_lock<std::recursive_mutex>(*_draw_mutex);
 
 	/* Remember current window size */
-	if (fullscreen) SDL_GetWindowSize(_sdl_window, &_window_size_w, &_window_size_h);
+	if (fullscreen) {
+		SDL_GetWindowSize(_sdl_window, &_window_size_w, &_window_size_h);
+
+		/* Find fullscreen window size */
+		SDL_DisplayMode dm;
+		if (SDL_GetCurrentDisplayMode(0, &dm) < 0) {
+			DEBUG(driver, 0, "SDL_GetCurrentDisplayMode() failed: %s", SDL_GetError());
+		} else {
+			SDL_SetWindowSize(_sdl_window, dm.w, dm.h);
+		}
+	}
 
 	DEBUG(driver, 1, "SDL: Setting %s", fullscreen ? "fullscreen" : "windowed");
-	int ret = SDL_SetWindowFullscreen(_sdl_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	int ret = SDL_SetWindowFullscreen(_sdl_window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
 	if (ret == 0) {
 		/* Switching resolution succeeded, set fullscreen value of window. */
 		_fullscreen = fullscreen;
