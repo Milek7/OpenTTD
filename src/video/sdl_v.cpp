@@ -309,6 +309,11 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 	if (resize) SDL_SetWindowSize(_sdl_window, w, h);
 
 	newscreen = SDL_GetWindowSurface(_sdl_window);
+	if (newscreen == NULL) {
+		DEBUG(driver, 0, "SDL: Couldn't get window surface: %s", SDL_GetError());
+		return false;
+	}
+
 	_sdl_realscreen = newscreen;
 
 	if (bpp == 8) {
