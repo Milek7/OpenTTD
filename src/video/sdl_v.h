@@ -14,8 +14,16 @@
 
 #include "video_driver.hpp"
 
+#ifdef __EMSCRIPTEN__
+void em_loop(void *arg);
+#endif
+
 /** The SDL video driver. */
 class VideoDriver_SDL : public VideoDriver {
+#ifdef __EMSCRIPTEN__
+	friend void em_loop(void *arg);
+#endif
+
 public:
 	const char *Start(const char * const *param) override;
 
@@ -26,6 +34,8 @@ public:
 	void MainLoop() override;
 
 	bool ChangeResolution(int w, int h) override;
+
+	void LoopOnce();
 
 	bool ToggleFullscreen(bool fullscreen) override;
 
@@ -41,6 +51,13 @@ public:
 private:
 	int PollEvent();
 	bool CreateMainSurface(uint w, uint h, bool resize);
+	void SetupKeyboard();
+
+	uint32 cur_ticks;
+	uint32 last_cur_ticks;
+	uint32 next_tick;
+	std::thread draw_thread;
+	std::unique_lock<std::recursive_mutex> draw_lock;
 };
 
 /** Factory for the SDL video driver. */
