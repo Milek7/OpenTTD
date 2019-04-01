@@ -36,6 +36,7 @@ static void CDECL fill_sound_buffer(void *userdata, Uint8 *stream, int len)
 const char *SoundDriver_SDL::Start(const char * const *parm)
 {
 	SDL_AudioSpec spec;
+	SDL_AudioSpec spec_actual;
 
 	/* Only initialise SDL if the video driver hasn't done it already */
 	int ret_code = 0;
@@ -51,9 +52,9 @@ const char *SoundDriver_SDL::Start(const char * const *parm)
 	spec.channels = 2;
 	spec.samples = GetDriverParamInt(parm, "samples", 1024);
 	spec.callback = fill_sound_buffer;
-	MxInitialize(spec.freq);
-	SDL_OpenAudio(&spec, &spec);
-	SDL_PauseAudio(0);
+	SDL_AudioDeviceID dev = SDL_OpenAudioDevice(nullptr, 0, &spec, &spec_actual, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+	MxInitialize(spec_actual.freq);
+	SDL_PauseAudioDevice(dev, 0);
 	return nullptr;
 }
 
