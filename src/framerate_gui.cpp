@@ -250,6 +250,8 @@ PerformanceMeasurer::~PerformanceMeasurer()
 			return;
 		}
 	}
+	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
+
 	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
 		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead();
 		Company *c;
@@ -258,6 +260,7 @@ PerformanceMeasurer::~PerformanceMeasurer()
 				active_scripts++;
 			}
 		}
+
 		if (active_scripts != 0) {
 			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
 			uint value = opcodes;
@@ -276,7 +279,6 @@ PerformanceMeasurer::~PerformanceMeasurer()
 			}
 		}
 	}
-	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 }
 
 /** Set the rate of expected cycles per second of a performance element. */
@@ -1043,12 +1045,22 @@ void ConPrintFramerate()
 			seprintf(ai_name_buf, lastof(ai_name_buf), "AI %d %s", e - PFE_AI0 + 1, GetAIName(e - PFE_AI0)),
 			name = ai_name_buf;
 		}
-		IConsolePrintF(TC_LIGHT_BLUE, "%s times: %.2fms  %.2fms  %.2fms",
-			name,
-			pf.GetAverageDurationMilliseconds(count1),
-			pf.GetAverageDurationMilliseconds(count2),
-			pf.GetAverageDurationMilliseconds(count3));
-		printed_anything = true;
+		if (e >= PFE_GAMESCRIPT && e <= PFE_AI14) {
+			IConsolePrintF(TC_LIGHT_BLUE, "%s times: %.2fms  %.2fms  %.2fms  opcodes: %d",
+				name,
+				pf.GetAverageDurationMilliseconds(count1),
+				pf.GetAverageDurationMilliseconds(count2),
+				pf.GetAverageDurationMilliseconds(count3),
+				e == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(e - PFE_AI0)));
+			printed_anything = true;
+		} else {
+			IConsolePrintF(TC_LIGHT_BLUE, "%s times: %.2fms  %.2fms  %.2fms",
+				name,
+				pf.GetAverageDurationMilliseconds(count1),
+				pf.GetAverageDurationMilliseconds(count2),
+				pf.GetAverageDurationMilliseconds(count3));
+			printed_anything = true;
+		}
 	}
 
 	if (!printed_anything) {
