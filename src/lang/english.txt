@@ -2771,6 +2771,8 @@ STR_FRAMETIME_CAPTION_ALLSCRIPTS                                :GS/AI scripts t
 STR_FRAMETIME_CAPTION_GAMESCRIPT                                :Game script
 STR_FRAMETIME_CAPTION_AI                                        :AI {NUM} {RAW_STRING}
 ############ End of leave-in-this-order
+STR_FRAMETIME_CAPTION_AI_MAXOPCODE                              :AI {NUM} {RAW_STRING} {COMMA} ops
+STR_FRAMETIME_CAPTION_GS_MAXOPCODE                              :GS {RAW_STRING} {COMMA} ops
 
 
 # Save/load game/scenario

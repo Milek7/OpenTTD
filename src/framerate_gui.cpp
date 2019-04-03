@@ -24,6 +24,7 @@
 #include "ai/ai_info.hpp"
 #include "ai/ai.hpp"
 #include "ai/ai_instance.hpp"
+#include "game/game_info.hpp"
 #include "game/game.hpp"
 #include "game/game_instance.hpp"
 
@@ -374,6 +375,12 @@ static const char * GetAIName(int ai_index)
 {
 	if (!Company::IsValidAiID(ai_index)) return "";
 	return Company::Get(ai_index)->ai_info->GetName();
+}
+
+static const char * GetGSName()
+{
+	if (Game::GetInstance() == NULL) return "";
+	return Game::GetInfo()->GetName();
 }
 
 /** @hideinitializer */
@@ -731,12 +738,19 @@ struct FrametimeGraphWindow : Window {
 	{
 		switch (widget) {
 			case WID_FGW_CAPTION:
-				if (this->element < PFE_AI0) {
+				if (this->element < PFE_GAMESCRIPT) {
 					SetDParam(0, STR_FRAMETIME_CAPTION_GAMELOOP + this->element);
 				} else {
-					SetDParam(0, STR_FRAMETIME_CAPTION_AI);
-					SetDParam(1, this->element - PFE_AI0 + 1);
-					SetDParamStr(2, GetAIName(this->element - PFE_AI0));
+					if (this->element == PFE_GAMESCRIPT) {
+						SetDParam(0, STR_FRAMETIME_CAPTION_GS_MAXOPCODE);
+						SetDParamStr(1, GetGSName());
+						SetDParam(2, Game::GetMaxOpCodes());
+					} else {
+						SetDParam(0, STR_FRAMETIME_CAPTION_AI_MAXOPCODE);
+						SetDParam(1, this->element - PFE_AI0 + 1);
+						SetDParamStr(2, GetAIName(this->element - PFE_AI0));
+						SetDParam(3, AI::GetMaxOpCodes((CompanyID)(this->element - PFE_AI0)));
+					}
 				}
 				break;
 		}
