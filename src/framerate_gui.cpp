@@ -264,11 +264,12 @@ PerformanceMeasurer::~PerformanceMeasurer()
 		if (active_scripts != 0) {
 			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
 			uint value = opcodes;
-			double avg = min(9999.99, _pf_data[this->elem].GetAverageDurationMilliseconds(8));
-			if (avg * active_scripts > GL_RATE) {
+			double avg = min(9999.99, _pf_data[this->elem].GetAverageDurationMilliseconds(GL_RATE));
+			double all = min(9999.99, _pf_data[PFE_ALLSCRIPTS].GetAverageDurationMilliseconds(GL_RATE));
+			if (avg * active_scripts > GL_RATE && all > GL_RATE) {
 				value = Clamp(opcodes - (avg * active_scripts - GL_RATE) * (avg * active_scripts - GL_RATE), 500, 250000);
-			} else if (avg * active_scripts > 0 && avg < GL_RATE / 3) {
-				value = Clamp(opcodes + GL_RATE / 3 - avg * active_scripts, 500, 250000);
+			} else if (avg > 0 && avg < GL_RATE / 3 || all < GL_RATE / 3) {
+				value = Clamp(opcodes + GL_RATE / 3 - avg, 500, 250000);
 			}
 			if (value != opcodes) {
 				if (this->elem == PFE_GAMESCRIPT) {
