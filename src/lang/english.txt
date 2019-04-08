@@ -2728,6 +2728,7 @@ STR_FRAMERATE_SPEED_FACTOR                                      :{BLACK}Current 
 STR_FRAMERATE_SPEED_FACTOR_TOOLTIP                              :{BLACK}How fast the game is currently running, compared to the expected speed at normal simulation rate.
 STR_FRAMERATE_CURRENT                                           :{WHITE}Current
 STR_FRAMERATE_AVERAGE                                           :{WHITE}Average
+STR_FRAMERATE_OPCODES                                           :{WHITE}Max Ops
 STR_FRAMERATE_DATA_POINTS                                       :{BLACK}Data based on {COMMA} measurements
 STR_FRAMERATE_MS_GOOD                                           :{LTBLUE}{DECIMAL} ms
 STR_FRAMERATE_MS_WARN                                           :{YELLOW}{DECIMAL} ms
@@ -2735,6 +2736,7 @@ STR_FRAMERATE_MS_BAD                                            :{RED}{DECIMAL} 
 STR_FRAMERATE_FPS_GOOD                                          :{LTBLUE}{DECIMAL} frames/s
 STR_FRAMERATE_FPS_WARN                                          :{YELLOW}{DECIMAL} frames/s
 STR_FRAMERATE_FPS_BAD                                           :{RED}{DECIMAL} frames/s
+STR_FRAMERATE_OPS                                               :{LTBLUE}{COMMA} ops
 STR_FRAMERATE_GRAPH_MILLISECONDS                                :{TINY_FONT}{COMMA} ms
 STR_FRAMERATE_GRAPH_SECONDS                                     :{TINY_FONT}{COMMA} s
 ############ Leave those lines in this order!!
@@ -2751,7 +2753,7 @@ STR_FRAMERATE_DRAWING_VIEWPORTS                                 :{BLACK}  World 
 STR_FRAMERATE_VIDEO                                             :{BLACK}Video output:
 STR_FRAMERATE_SOUND                                             :{BLACK}Sound mixing:
 STR_FRAMERATE_ALLSCRIPTS                                        :{BLACK}  GS/AI total:
-STR_FRAMERATE_GAMESCRIPT                                        :{BLACK}   Game script:
+STR_FRAMERATE_GAMESCRIPT                                        :{BLACK}   GS {RAW_STRING}
 STR_FRAMERATE_AI                                                :{BLACK}   AI {NUM} {RAW_STRING}
 ############ End of leave-in-this-order
 ############ Leave those lines in this order!!

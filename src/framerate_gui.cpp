@@ -27,6 +27,7 @@
 #include "game/game_info.hpp"
 #include "game/game.hpp"
 #include "game/game_instance.hpp"
+#include "settings_internal.h"
 
 #include "widgets/framerate_widget.h"
 #include "safeguards.h"
@@ -253,24 +254,28 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	}
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 
+	/* Self-adjust max opcodes for active scripts */
 	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
-		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead();
+		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused();
 		Company *c;
 		FOR_ALL_COMPANIES(c) {
-			if (Company::IsValidAiID(c->index) && Company::Get(c->index)->ai_instance != nullptr && !Company::Get(c->index)->ai_instance->IsDead()) {
+			if (_pause_mode == PM_UNPAUSED && Company::IsValidAiID(c->index) && Company::Get(c->index)->ai_instance != nullptr && !Company::Get(c->index)->ai_instance->IsDead() && !Company::Get(c->index)->ai_instance->IsPaused()) {
 				active_scripts++;
 			}
 		}
 
-		if (active_scripts != 0) {
+		if (active_scripts != 0 && (this->elem == PFE_GAMESCRIPT ? Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused() : _pause_mode == PM_UNPAUSED && Company::IsValidAiID((CompanyID)(this->elem - PFE_AI0)) && Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance != nullptr && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsDead() && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsPaused())) {
+			uint dummy; // unused
+			const SettingDesc *sd = GetSettingFromName("script_max_opcode_till_suspend", &dummy);
+			assert(sd != nullptr);
 			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
 			uint value = opcodes;
 			double avg = min(9999.99, _pf_data[this->elem].GetAverageDurationMilliseconds(GL_RATE));
 			double all = min(9999.99, _pf_data[PFE_ALLSCRIPTS].GetAverageDurationMilliseconds(GL_RATE));
-			if (avg * active_scripts > GL_RATE && all > GL_RATE) {
-				value = Clamp(opcodes - (avg * active_scripts - GL_RATE) * (avg * active_scripts - GL_RATE), 500, 250000);
-			} else if (avg > 0 && avg < GL_RATE / 3 || all < GL_RATE / 3) {
-				value = Clamp(opcodes + GL_RATE / 3 - avg, 500, 250000);
+			if (avg * active_scripts > MILLISECONDS_PER_TICK && all > MILLISECONDS_PER_TICK) {
+				value = Clamp(opcodes - (avg * active_scripts - MILLISECONDS_PER_TICK) * (avg * active_scripts - MILLISECONDS_PER_TICK), sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
+			} else if (avg > 0 && avg < MILLISECONDS_PER_TICK / 3 || all < MILLISECONDS_PER_TICK / 3) {
+				value = Clamp(opcodes + MILLISECONDS_PER_TICK / 3 - avg, sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
 			}
 			if (value != opcodes) {
 				if (this->elem == PFE_GAMESCRIPT) {
@@ -405,6 +410,7 @@ static const NWidgetPart _framerate_window_widgets[] = {
 					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_NAMES), SetScrollbar(WID_FRW_SCROLLBAR),
 					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_CURRENT), SetScrollbar(WID_FRW_SCROLLBAR),
 					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_AVERAGE), SetScrollbar(WID_FRW_SCROLLBAR),
+					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_OPCODES), SetScrollbar(WID_FRW_SCROLLBAR),
 				EndContainer(),
 				NWidget(WWT_TEXT, COLOUR_GREY, WID_FRW_INFO_DATA_POINTS), SetDataTip(STR_FRAMERATE_DATA_POINTS, 0x0),
 			EndContainer(),
@@ -572,12 +578,17 @@ struct FramerateWindow : Window {
 				for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 					if (_pf_data[e].num_valid == 0) continue;
 					Dimension line_size;
-					if (e < PFE_AI0) {
+					if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
 						line_size = GetStringBoundingBox(STR_FRAMERATE_GAMELOOP + e);
 					} else {
-						SetDParam(0, e - PFE_AI0 + 1);
-						SetDParamStr(1, GetAIName(e - PFE_AI0));
-						line_size = GetStringBoundingBox(STR_FRAMERATE_AI);
+						if (e == PFE_GAMESCRIPT) {
+							SetDParamStr(0, GetGSName());
+							line_size = GetStringBoundingBox(STR_FRAMERATE_GAMESCRIPT);
+						} else {
+							SetDParam(0, e - PFE_AI0 + 1);
+							SetDParamStr(1, GetAIName(e - PFE_AI0));
+							line_size = GetStringBoundingBox(STR_FRAMERATE_AI);
+						}
 					}
 					size->width = max(size->width, line_size.width);
 				}
@@ -585,7 +596,8 @@ struct FramerateWindow : Window {
 			}
 
 			case WID_FRW_TIMES_CURRENT:
-			case WID_FRW_TIMES_AVERAGE: {
+			case WID_FRW_TIMES_AVERAGE:
+			case WID_FRW_TIMES_OPCODES: {
 				*size = GetStringBoundingBox(STR_FRAMERATE_CURRENT + (widget - WID_FRW_TIMES_CURRENT));
 				SetDParam(0, 999999);
 				SetDParam(1, 2);
@@ -622,6 +634,33 @@ struct FramerateWindow : Window {
 		}
 	}
 
+	void DrawElementMaxOpsColumn(const Rect& r, StringID heading_str) const
+	{
+		const Scrollbar* sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
+		uint16 skip = sb->GetPosition();
+		int drawable = this->num_displayed;
+		int y = r.top;
+		DrawString(r.left, r.right, y, heading_str, TC_FROMSTRING, SA_CENTER, true);
+		y += FONT_HEIGHT_NORMAL + VSPACING;
+		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
+			if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
+				y += FONT_HEIGHT_NORMAL;
+				continue;
+			}
+			if (_pf_data[e].num_valid == 0) continue;
+			if (skip > 0) {
+				skip--;
+			} else {
+				uint value = e == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(e - PFE_AI0));
+				SetDParam(0, value);
+				DrawString(r.left, r.right, y, STR_FRAMERATE_OPS, TC_FROMSTRING, SA_RIGHT);
+				y += FONT_HEIGHT_NORMAL;
+				drawable--;
+				if (drawable == 0) break;
+			}
+		}
+	}
+
 	void DrawWidget(const Rect &r, int widget) const override
 	{
 		switch (widget) {
@@ -636,12 +675,17 @@ struct FramerateWindow : Window {
 					if (skip > 0) {
 						skip--;
 					} else {
-						if (e < PFE_AI0) {
+						if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
 							DrawString(r.left, r.right, y, STR_FRAMERATE_GAMELOOP + e, TC_FROMSTRING, SA_LEFT);
 						} else {
-							SetDParam(0, e - PFE_AI0 + 1);
-							SetDParamStr(1, GetAIName(e - PFE_AI0));
-							DrawString(r.left, r.right, y, STR_FRAMERATE_AI, TC_FROMSTRING, SA_LEFT);
+							if (e == PFE_GAMESCRIPT) {
+								SetDParamStr(0, GetGSName());
+								DrawString(r.left, r.right, y, STR_FRAMERATE_GAMESCRIPT, TC_FROMSTRING, SA_LEFT);
+							} else {
+								SetDParam(0, e - PFE_AI0 + 1);
+								SetDParamStr(1, GetAIName(e - PFE_AI0));
+								DrawString(r.left, r.right, y, STR_FRAMERATE_AI, TC_FROMSTRING, SA_LEFT);
+							}
 						}
 						y += FONT_HEIGHT_NORMAL;
 						drawable--;
@@ -658,6 +702,9 @@ struct FramerateWindow : Window {
 				/* Render averages of all recorded values */
 				DrawElementTimesColumn(r, STR_FRAMERATE_AVERAGE, this->times_longterm);
 				break;
+			case WID_FRW_TIMES_OPCODES:
+				DrawElementMaxOpsColumn(r, STR_FRAMERATE_OPCODES);
+				break;
 		}
 	}
 
@@ -666,7 +713,8 @@ struct FramerateWindow : Window {
 		switch (widget) {
 			case WID_FRW_TIMES_NAMES:
 			case WID_FRW_TIMES_CURRENT:
-			case WID_FRW_TIMES_AVERAGE: {
+			case WID_FRW_TIMES_AVERAGE:
+			case WID_FRW_TIMES_OPCODES: {
 				/* Open time graph windows when clicking detail measurement lines */
 				const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
 				int line = sb->GetScrolledRowFromWidget(pt.y - FONT_HEIGHT_NORMAL - VSPACING, this, widget, VSPACING, FONT_HEIGHT_NORMAL);
