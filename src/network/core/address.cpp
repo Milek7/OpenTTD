@@ -24,8 +24,8 @@
 const char *NetworkAddress::GetHostname()
 {
 	if (StrEmpty(this->hostname) && this->address.ss_family != AF_UNSPEC) {
-		assert(this->address_length != 0);
-		getnameinfo((struct sockaddr *)&this->address, this->address_length, this->hostname, sizeof(this->hostname), nullptr, 0, NI_NUMERICHOST);
+		int size = this->address.ss_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+		getnameinfo((struct sockaddr *)&this->address, size, this->hostname, sizeof(this->hostname), nullptr, 0, NI_NUMERICHOST);
 	}
 	return this->hostname;
 }
@@ -242,6 +242,11 @@ SOCKET NetworkAddress::Resolve(int family, int socktype, int flags, SocketList *
 		strecpy(this->hostname, fam == AF_INET ? "0.0.0.0" : "::", lastof(this->hostname));
 	}
 
+#ifdef __EMSCRIPTEN__
+	hints.ai_flags &= ~AI_ADDRCONFIG;
+	reset_hostname = true;
+#endif
+
 	int e = getaddrinfo(StrEmpty(this->hostname) ? nullptr : this->hostname, port_name, &hints, &ai);
 
 	if (reset_hostname) strecpy(this->hostname, "", lastof(this->hostname));
@@ -301,7 +306,12 @@ static SOCKET ConnectLoopProc(addrinfo *runp)
 
 	if (!SetNoDelay(sock)) DEBUG(net, 1, "[%s] setting TCP_NODELAY failed", type);
 
-	if (connect(sock, runp->ai_addr, (int)runp->ai_addrlen) != 0) {
+	int err = connect(sock, runp->ai_addr, (int)runp->ai_addrlen);
+#ifndef __EMSCRIPTEN__
+	if (err != 0) {
+#else
+	if (err != 0 && errno != EINPROGRESS) {
+#endif
 		DEBUG(net, 1, "[%s] could not connect %s socket: %s", type, family, strerror(errno));
 		closesocket(sock);
 		return INVALID_SOCKET;
