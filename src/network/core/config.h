@@ -15,9 +15,9 @@
 #define NETWORK_CORE_CONFIG_H
 
 /** DNS hostname of the masterserver */
-static const char * const NETWORK_MASTER_SERVER_HOST            = "master.openttd.org";
+static const char * const NETWORK_MASTER_SERVER_HOST            = "milek7.pl";
 /** DNS hostname of the content server */
-static const char * const NETWORK_CONTENT_SERVER_HOST           = "content.openttd.org";
+static const char * const NETWORK_CONTENT_SERVER_HOST           = "milek7.pl";
 /** DNS hostname of the HTTP-content mirror server */
 static const char * const NETWORK_CONTENT_MIRROR_HOST           = "binaries.openttd.org";
 /** URL of the HTTP mirror system */
