@@ -139,7 +139,7 @@ public:
 	/**
 	 * Randomize all settings the Script requested to be randomized.
 	 */
-	virtual void AddRandomDeviation();
+	virtual void AddRandomDeviation(bool all = true);
 
 	/**
 	 * Is this config attached to an Script? In other words, is there a Script
