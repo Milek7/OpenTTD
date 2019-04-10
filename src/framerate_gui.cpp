@@ -643,11 +643,11 @@ struct FramerateWindow : Window {
 		DrawString(r.left, r.right, y, heading_str, TC_FROMSTRING, SA_CENTER, true);
 		y += FONT_HEIGHT_NORMAL + VSPACING;
 		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
+			if (_pf_data[e].num_valid == 0) continue;
 			if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
 				y += FONT_HEIGHT_NORMAL;
 				continue;
 			}
-			if (_pf_data[e].num_valid == 0) continue;
 			if (skip > 0) {
 				skip--;
 			} else {
