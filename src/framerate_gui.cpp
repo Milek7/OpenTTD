@@ -653,7 +653,7 @@ struct FramerateWindow : Window {
 
 	void DrawElementMaxOpsColumn(const Rect& r, StringID heading_str) const
 	{
-		const Scrollbar* sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
+		const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
 		uint16 skip = sb->GetPosition();
 		int drawable = this->num_displayed;
 		int y = r.top;
