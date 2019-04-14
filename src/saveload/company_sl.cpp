@@ -275,12 +275,13 @@ static const SaveLoad _company_desc[] = {
 
 	    SLE_VAR(CompanyProperties, num_valid_stat_ent,    SLE_UINT8),
 
-	    SLE_VAR(CompanyProperties, months_of_bankruptcy,  SLE_UINT8),
-	SLE_CONDVAR(CompanyProperties, bankrupt_asked,        SLE_FILE_U8  | SLE_VAR_U16,  SL_MIN_VERSION, SLV_104),
-	SLE_CONDVAR(CompanyProperties, bankrupt_asked,        SLE_UINT16,                SLV_104, SL_MAX_VERSION),
-	    SLE_VAR(CompanyProperties, bankrupt_timeout,      SLE_INT16),
-	SLE_CONDVAR(CompanyProperties, bankrupt_value,        SLE_VAR_I64 | SLE_FILE_I32,  SL_MIN_VERSION, SLV_65),
-	SLE_CONDVAR(CompanyProperties, bankrupt_value,        SLE_INT64,                  SLV_65, SL_MAX_VERSION),
+	    SLE_VAR(CompanyProperties, months_of_bankruptcy,   SLE_UINT8),
+	SLE_CONDVAR(CompanyProperties, bankrupt_asked.data[0], SLE_FILE_U8  | SLE_VAR_U64,  SL_MIN_VERSION, SLV_104),
+	SLE_CONDVAR(CompanyProperties, bankrupt_asked.data[0], SLE_FILE_U16 | SLE_VAR_U64,  SLV_104, SLV_MORE_COMPANIES),
+	SLE_CONDARR(CompanyProperties, bankrupt_asked.data,    SLE_UINT64, CompanyMask::bsize, SLV_MORE_COMPANIES, SL_MAX_VERSION),
+	    SLE_VAR(CompanyProperties, bankrupt_timeout,       SLE_INT16),
+	SLE_CONDVAR(CompanyProperties, bankrupt_value,         SLE_VAR_I64 | SLE_FILE_I32,  SL_MIN_VERSION, SLV_65),
+	SLE_CONDVAR(CompanyProperties, bankrupt_value,         SLE_INT64,                  SLV_65, SL_MAX_VERSION),
 
 	/* yearly expenses was changed to 64-bit in savegame version 2. */
 	SLE_CONDARR(CompanyProperties, yearly_expenses,       SLE_FILE_I32 | SLE_VAR_I64, 3 * 13, SL_MIN_VERSION, SLV_2),
