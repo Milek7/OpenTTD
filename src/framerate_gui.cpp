@@ -204,7 +204,8 @@ namespace {
 		PerformanceData(1),
 		PerformanceData(1),
 		PerformanceData(1),
-		PerformanceData(1),                     // PFE_AI14
+		PerformanceData(1),
+		PerformanceData(1),                     // PFE_AIOTHERS
 	};
 
 }
@@ -330,6 +331,7 @@ static const PerformanceElement DISPLAY_ORDER_PFE[PFE_MAX] = {
 	PFE_AI12,
 	PFE_AI13,
 	PFE_AI14,
+	PFE_AIOTHERS,
 	PFE_GL_LINKGRAPH,
 	PFE_DRAWING,
 	PFE_DRAWWORLD,

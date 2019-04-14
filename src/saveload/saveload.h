@@ -299,6 +299,8 @@ enum SaveLoadVersion : uint16 {
 	SLV_REMOVE_OPF,                         ///< 212  PR#7245 Remove OPF.
 	SLV_TREES_WATER_CLASS,                  ///< 213  PR#7405 WaterClass update for tree tiles.
 
+	SLV_MORE_COMPANIES,                     ///< 214  More companies.
+
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
 

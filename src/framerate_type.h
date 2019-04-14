@@ -77,6 +77,7 @@ enum PerformanceElement {
 	PFE_AI12,          ///< AI execution for player slot 13
 	PFE_AI13,          ///< AI execution for player slot 14
 	PFE_AI14,          ///< AI execution for player slot 15
+	PFE_AIOTHERS,      ///< AI execution for other slots
 	PFE_MAX,           ///< End of enum, must be last.
 };
 DECLARE_POSTFIX_INCREMENT(PerformanceElement)

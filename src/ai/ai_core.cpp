@@ -76,15 +76,22 @@
 	assert(_settings_game.difficulty.competitor_speed <= 4);
 	if ((AI::frame_counter & ((1 << (4 - _settings_game.difficulty.competitor_speed)) - 1)) != 0) return;
 
+	for (PerformanceElement perf_index = PFE_AI0; perf_index != PFE_MAX; perf_index++)
+		PerformanceAccumulator::Reset(perf_index);
+
 	Backup<CompanyByte> cur_company(_current_company, FILE_LINE);
 	const Company *c;
 	FOR_ALL_COMPANIES(c) {
+		PerformanceElement perf_index = (PerformanceElement)(PFE_AI0 + c->index);
+		if (perf_index >= PFE_AIOTHERS)
+			perf_index = PFE_AIOTHERS;
+
 		if (c->is_ai) {
-			PerformanceMeasurer framerate((PerformanceElement)(PFE_AI0 + c->index));
+			PerformanceAccumulator framerate(perf_index);
 			cur_company.Change(c->index);
 			c->ai_instance->GameLoop();
 		} else {
-			PerformanceMeasurer::SetInactive((PerformanceElement)(PFE_AI0 + c->index));
+			PerformanceMeasurer::SetInactive(perf_index);
 		}
 	}
 	cur_company.Restore();
@@ -105,7 +112,7 @@
 /* static */ void AI::Stop(CompanyID company)
 {
 	if (_networking && !_network_server) return;
-	PerformanceMeasurer::SetInactive((PerformanceElement)(PFE_AI0 + company));
+	if ((PerformanceElement)(PFE_AI0 + company) < PFE_AIOTHERS) PerformanceMeasurer::SetInactive((PerformanceElement)(PFE_AI0 + company));
 
 	Backup<CompanyByte> cur_company(_current_company, company, FILE_LINE);
 	Company *c = Company::Get(company);

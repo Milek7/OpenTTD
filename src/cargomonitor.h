@@ -26,10 +26,10 @@ struct Station;
  * Encoding is as follows:
  * - bits 0-15 town or industry number
  * - bit 16 is set if it is an industry number (else it is a town number).
- * - bits 19-23 Cargo type.
- * - bits 24-31 %Company number.
+ * - bits 19-24 Cargo type.
+ * - bits 25-32 Company number.
  */
-typedef uint32 CargoMonitorID; ///< Type of the cargo monitor number.
+typedef uint64 CargoMonitorID; ///< Type of the cargo monitor number.
 
 /** Map type for storing and updating active cargo monitor numbers and their amounts. */
 typedef std::map<CargoMonitorID, OverflowSafeInt32> CargoMonitorMap;
@@ -47,7 +47,7 @@ enum CargoCompanyBits {
 	CCB_CARGO_TYPE_START       = 19, ///< Start bit of the cargo type field.
 	CCB_CARGO_TYPE_LENGTH      = 6,  ///< Number of bits of the cargo type field.
 	CCB_COMPANY_START          = 25, ///< Start bit of the company field.
-	CCB_COMPANY_LENGTH         = 4,  ///< Number of bits of the company field.
+	CCB_COMPANY_LENGTH         = 8,  ///< Number of bits of the company field.
 };
 
 assert_compile(NUM_CARGO     <= (1 << CCB_CARGO_TYPE_LENGTH));

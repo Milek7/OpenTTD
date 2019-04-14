@@ -573,13 +573,6 @@ private:
 		bool primary = widget == WID_SCL_PRI_COL_DROPDOWN;
 		byte default_col;
 
-		/* Disallow other company colours for the primary colour */
-		if (this->livery_class < LC_GROUP_RAIL && HasBit(this->sel, LS_DEFAULT) && primary) {
-			FOR_ALL_COMPANIES(c) {
-				if (c->index != _local_company) SetBit(used_colours, c->colour);
-			}
-		}
-
 		c = Company::Get((CompanyID)this->window_number);
 
 		if (this->livery_class < LC_GROUP_RAIL) {
@@ -1308,7 +1301,7 @@ class SelectCompanyManagerFaceWindow : public Window
 	 * @param val            the value which will be draw
 	 * @param is_bool_widget is it a bool button
 	 */
-	void DrawFaceStringLabel(byte widget_index, uint8 val, bool is_bool_widget) const
+	void DrawFaceStringLabel(int widget_index, uint8 val, bool is_bool_widget) const
 	{
 		StringID str;
 		const NWidgetCore *nwi_widget = this->GetWidget<NWidgetCore>(widget_index);
