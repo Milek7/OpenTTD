@@ -25,6 +25,8 @@ public:
 
 	bool ChangeResolution(int w, int h) override;
 
+	void LoopOnce();
+
 	bool ToggleFullscreen(bool fullscreen) override;
 
 	bool AfterBlitterChange() override;
@@ -40,6 +42,12 @@ private:
 	int PollEvent();
 	bool CreateMainSurface(uint w, uint h);
 	void SetupKeyboard();
+
+	uint32 cur_ticks;
+	uint32 last_cur_ticks;
+	uint32 next_tick;
+	std::thread draw_thread;
+	std::unique_lock<std::recursive_mutex> draw_lock;
 };
 
 /** Factory for the SDL video driver. */
