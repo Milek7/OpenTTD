@@ -1111,13 +1111,13 @@ struct FramerateWindow : Window {
 		y += FONT_HEIGHT_NORMAL + VSPACING;
 		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 			if (_pf_data[e].num_valid == 0) continue;
-			if (e < PFE_GAMESCRIPT || e > PFE_AI239) {
-				y += FONT_HEIGHT_NORMAL;
-				continue;
-			}
 			if (skip > 0) {
 				skip--;
 			} else {
+				if (e < PFE_GAMESCRIPT || e > PFE_AI239) {
+					y += FONT_HEIGHT_NORMAL;
+					continue;
+				}
 				uint value = e == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(e - PFE_AI0));
 				SetDParam(0, value);
 				DrawString(r.left, r.right, y, STR_FRAMERATE_OPS, TC_FROMSTRING, SA_RIGHT);
