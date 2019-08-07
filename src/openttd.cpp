@@ -925,9 +925,6 @@ static void MakeNewGameDone()
 		SetLocalCompany(COMPANY_SPECTATOR);
 		if (_settings_client.gui.pause_on_newgame) DoCommandP(0, PM_PAUSED_NORMAL, 1, CMD_PAUSE);
 		IConsoleCmdExec("exec scripts/game_start.scr 0");
-
-		/* Check if the first AI is set to start immediately */
-		if (_game_mode == GM_NORMAL && AI::CanStartNew() && AI::GetStartNextTime() == 0) MaybeStartNewCompany();
 		return;
 	}
 
@@ -963,10 +960,6 @@ static void MakeNewGameDone()
 
 	CheckEngines();
 	CheckIndustries();
-
-	/* Check if the first AI is set to start immediately */
-	if (_game_mode == GM_NORMAL && AI::CanStartNew() && AI::GetStartNextTime() == 0) MaybeStartNewCompany();
-
 	MarkWholeScreenDirty();
 }
 

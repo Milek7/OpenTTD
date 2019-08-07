@@ -638,7 +638,7 @@ static void CompanyCheckBankrupt(Company *c)
 			 * player we ensure that the local company remains the same until
 			 * the end of StateGameLoop, where it could be changed. */
 			if (!_networking || _network_server) {
-				DoCommandP(0, CCA_DELETE | (c->index << 4) | (CRR_BANKRUPT << 12), 0, CMD_COMPANY_CTRL);
+				DoCommandP(0, CCA_DELETE | (c->index << 16) | (CRR_BANKRUPT << 24), 0, CMD_COMPANY_CTRL);
 				return;
 			}
 			break;

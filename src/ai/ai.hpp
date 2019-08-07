@@ -138,15 +138,8 @@ public:
 
 	/**
 	 * Get the number of days before the next AI should start.
-	 * @param count For which Nth AI to retrieve the starting date.
 	 */
-	static int GetStartNextTime(uint count = 0);
-
-	/**
-	 * Get the associated company index the next AI should start with.
-	 * @param count For which Nth AI to retrieve the starting company.
-	 */
-	static CompanyID GetStartNextCompany(uint count = 0);
+	static int GetStartNextTime();
 
 	/**
 	 * Get the current maximum number of opcodes for an AI before it's suspended.
