@@ -1857,6 +1857,7 @@ STR_CONFIG_SETTING_LOCALISATION_UNITS_HEIGHT_SI                 :СИ (м)
 
 STR_CONFIG_SETTING_LOCALISATION                                 :{ORANGE}Локализация
 STR_CONFIG_SETTING_GRAPHICS                                     :{ORANGE}Графика
+STR_CONFIG_SETTING_VIEW3D                                       :{ORANGE}3D виды
 STR_CONFIG_SETTING_SOUND                                        :{ORANGE}Звуковые эффекты
 STR_CONFIG_SETTING_INTERFACE                                    :{ORANGE}Интерфейс
 STR_CONFIG_SETTING_INTERFACE_GENERAL                            :{ORANGE}Общие настройки
@@ -1890,6 +1891,17 @@ STR_CONFIG_SETTING_PATHFINDER_FOR_SHIPS                         :Алгорит�
 STR_CONFIG_SETTING_PATHFINDER_FOR_SHIPS_HELPTEXT                :Алгоритм поиска пути, используемый кораблями
 STR_CONFIG_SETTING_REVERSE_AT_SIGNALS                           :Автоматический разворот у сигналов: {STRING}
 STR_CONFIG_SETTING_REVERSE_AT_SIGNALS_HELPTEXT                  :Разрешить поездам разворачиваться у светофора, если они долго ждут разрешающего сигнала
+
+STR_CONFIG_SETTING_OPENGL_MULTISAMPLE                           :Режим сглаживания: {STRING}
+STR_CONFIG_SETTING_OPENGL_MULTISAMPLE_HELPTEXT                  :Устанавливает режим сглаживания (мультисэмплинга) OpenGL блиттера
+STR_CONFIG_SETTING_VIEW3D_USE                                   :Отображать виды в 3D
+STR_CONFIG_SETTING_VIEW3D_USE_HELPTEXT                          :Включает 3D режим отображение видов
+STR_CONFIG_SETTING_VIEW3D_PERSPECTIVE                           :Использовать перспективу для 3D видов
+STR_CONFIG_SETTING_VIEW3D_PERSPECTIVE_HELPTEXT                  :Использовать перспективу для отображения 3D видов, иначе использовать изометрическу проекцию, как в оригинале
+STR_CONFIG_SETTING_VIEW3D_SHADOWS                               :Отображать тени объектов для 3D видов
+STR_CONFIG_SETTING_VIEW3D_SHADOWS_HELPTEXT                      :Включает отображение теней объектов для 3D видов
+STR_CONFIG_SETTING_VIEW3D_SHADOWS_TRANSP                        :Отображать тени от прозрачных объектов для 3D видов
+STR_CONFIG_SETTING_VIEW3D_SHADOWS_TRANSP_HELPTEXT               :Включает отображение теней от прозрачных объектов для 3D видов
 
 STR_CONFIG_SETTING_QUERY_CAPTION                                :{WHITE}Изменить значение
 
