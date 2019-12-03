@@ -113,6 +113,13 @@ viewport.cpp
 #if USE_SSE
 	viewport_sprite_sorter_sse4.cpp
 #end
+viewport3d/config3d.cpp
+viewport3d/gfx3d.cpp
+viewport3d/image3d.cpp
+viewport3d/link3d.cpp
+viewport3d/math3d.cpp
+viewport3d/model3d.cpp
+viewport3d/viewport3d.cpp
 waypoint.cpp
 widget.cpp
 window.cpp
@@ -952,6 +959,7 @@ script/api/script_window.cpp
 	blitter/8bpp_optimized.hpp
 	blitter/8bpp_simple.cpp
 	blitter/8bpp_simple.hpp
+	blitter/opengl.cpp
 #end
 blitter/base.hpp
 blitter/common.hpp
@@ -1103,6 +1111,8 @@ video/null_v.cpp
 	#end
 	#if WIN32
 		video/win32_v.cpp
+		video/win32_gdi.cpp
+		video/win32_ogl.cpp
 	#end
 #end
 

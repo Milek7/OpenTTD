@@ -14,6 +14,7 @@
 #include "strings_func.h"
 #include "core/pool_func.hpp"
 #include "viewport_kdtree.h"
+#include "viewport3d\viewport3d.h"
 
 #include "table/strings.h"
 
@@ -54,6 +55,8 @@ void Sign::UpdateVirtCoord()
 	this->sign.UpdatePosition(pt.x, pt.y - 6 * ZOOM_LVL_BASE, STR_WHITE_SIGN);
 
 	_viewport_sign_kdtree.Insert(ViewportSignKdtreeItem::MakeSign(this->index));
+
+	MarkTileDirty3D(TileXY(this->x / TILE_SIZE, this->y / TILE_SIZE));
 }
 
 /** Update the coordinates of all signs */
