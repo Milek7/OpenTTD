@@ -1114,6 +1114,7 @@ video/null_v.cpp
 		video/win32_gdi.cpp
 		video/win32_ogl.cpp
 	#end
+	3rdparty/glad/src/glad.c
 #end
 
 # Music

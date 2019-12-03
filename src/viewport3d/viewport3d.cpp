@@ -2076,7 +2076,7 @@ static void UpdateShadowFrame()
 	glGenFramebuffers(5, _shadow_frame);
 
 	glBindTexture(GL_TEXTURE_2D, _shadow_texture);
-	glTexStorage2D(GL_TEXTURE_2D, 5, glewIsSupported("GL_ARB_depth_buffer_float") ? GL_DEPTH_COMPONENT32F : GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+	glTexStorage2D(GL_TEXTURE_2D, 5, GLAD_GL_ARB_depth_buffer_float ? GL_DEPTH_COMPONENT32F : GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	for (int i = 0; i < 5; i++)
@@ -2169,7 +2169,7 @@ static void UpdateObjectProgram()
 	if (_object_program) return;
 
 	char opts[64];
-	sprintf_s(opts, "%s%s", _use_shadows_set ? "#define SHADOWS\r\n" : "", _multisample_set ? "#define MULTISAMPLE\r\n" : "");
+	sprintf(opts, "%s%s", _use_shadows_set ? "#define SHADOWS\r\n" : "", _multisample_set ? "#define MULTISAMPLE\r\n" : "");
 	GLuint vs = ShaderLoad("shader/object.vert", GL_VERTEX_SHADER, opts);
 	GLuint fs = ShaderLoad("shader/object.frag", GL_FRAGMENT_SHADER, opts);
 	_object_program = ProgramLink(vs, fs);
@@ -3647,121 +3647,6 @@ void DrawViewport3D(const ViewPort *vp)
 	AddObjectsDrawData(vp, false, true);
 	MakeInstanceData();
 	DrawDataTransp(vp);
-
-	/// debug stuff
-/**/
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadTransposeMatrixf(vp->xyz_to_ogl);
-/**/
-/*
-	for (size_t i = 0; i < _draw_seg.size(); i++)
-	{
-		LandSeg *s = _draw_seg[i];
-//		Colour c = _cur_palette.palette[_string_colourmap[color & 0xF]]; color++;
-
-		uint32 ts = (uint32)(s->index    ) * LAND_SEG_TILE_COUNT;
-		uint32 tf = (uint32)(s->index + 1) * LAND_SEG_TILE_COUNT;
-
-		glBegin(GL_LINES);
-		{
-			glColor4f(0.5f, 0.5f, 0.5f, 1.0f);
-			for (size_t t = ts; t < tf; t++)
-			{
-				for (int k = 0; k < 2; k++)
-				{
-					TileVertex *v = &_land.vertex[t * 6 + k * 3];
-
-					glVertex3f(v[0].pos.x, v[0].pos.y, v[0].pos.z);
-					glVertex3f(v[1].pos.x, v[1].pos.y, v[1].pos.z);
-
-					glVertex3f(v[1].pos.x, v[1].pos.y, v[1].pos.z);
-					glVertex3f(v[2].pos.x, v[2].pos.y, v[2].pos.z);
-
-					glVertex3f(v[2].pos.x, v[2].pos.y, v[2].pos.z);
-					glVertex3f(v[0].pos.x, v[0].pos.y, v[0].pos.z);
-				}
-			}
-		}
-		glEnd();
-	}
-/**/
-/**/
-	for (int i = 0; i < _draw_veh.size(); i++)
-	{
-		VehicleData *c = _draw_veh[i];
-		if (c->linked) continue;
-
-		Vehicle *v = Vehicle::Get(c->index);
-		
-		glMatrixMode(GL_MODELVIEW);
-		glLoadTransposeMatrixf(c->matr);
-
-		glBegin(GL_LINES);
-		glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
-
-		float sz_x = 7;
-		float sz_y = 3;
-		float sz_z = 6;
-		switch (v->type)
-		{
-		case VEH_TRAIN:
-			{
-				GroundVehicleCache *cache=v->GetGroundVehicleCache();
-				sz_x = cache->cached_veh_length;
-			}
-			break;
-
-		case VEH_ROAD:
-			{
-				GroundVehicleCache *cache=v->GetGroundVehicleCache();
-				sz_x = cache->cached_veh_length;
-				sz_y = 3;
-				sz_z = 6;
-			}
-			break;
-
-		case VEH_SHIP:
-			sz_x = 32;
-			sz_y = 6;
-			break;
-
-		case VEH_AIRCRAFT:
-			sz_x = 24;
-			sz_y = 24;
-			sz_z = 5;
-			break;
-		};
-
-		float bbp[4][2]=
-		{
-			{ -sz_x / 2.0f, -sz_y / 2.0f },
-			{ -sz_x / 2.0f, +sz_y / 2.0f },
-			{ +sz_x / 2.0f, +sz_y / 2.0f },
-			{ +sz_x / 2.0f, -sz_y / 2.0f },
-		};
-		for (int j = 0; j < 2; j++)
-		{
-			for (int i = 0; i < 4; i++)
-			{
-				int p0 = (i + 0) % 4;
-				int p1 = (i + 1) % 4;
-				glVertex3f(bbp[p0][0], bbp[p0][1], (sz_z * j) * (TILE_HEIGHT_SCALE));
-				glVertex3f(bbp[p1][0], bbp[p1][1], (sz_z * j) * (TILE_HEIGHT_SCALE));
-			}
-		}
-		for (int i = 0; i < 4; i++)
-		{
-			int p = (i + 0) % 4;
-			glVertex3f(bbp[p][0], bbp[p][1], 0.0f);
-			glVertex3f(bbp[p][0], bbp[p][1], sz_z * (TILE_HEIGHT_SCALE));
-		}
-		glEnd();
-	}
-/**/
-	/// debug stuff end
 
 	/* finished all of the 3D drawing, now draw a text overlay */
 

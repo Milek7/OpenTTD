@@ -22,8 +22,7 @@
 #include "../window_gui.h"
 #include "viewport3d.h"
 
-#include "../3rdparty/OpenGL/glew.h"
-#include <gl/gl.h>
+#include "../3rdparty/gl.h"
 
 int _draw3d = 0; // draw the viewports in 3D
 

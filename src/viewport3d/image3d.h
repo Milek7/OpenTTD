@@ -3,8 +3,7 @@
 
 #include "../stdafx.h"
 
-#include "../3rdparty/OpenGL/glew.h"
-#include <gl/gl.h>
+#include "../3rdparty/gl.h"
 
 #include <vector>
 #include <string>
