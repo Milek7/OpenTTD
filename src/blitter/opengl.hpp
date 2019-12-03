@@ -16,9 +16,8 @@
 
 #include "../core/smallvec_type.hpp"
 #include "../gfx_func.h"
-#include <windows.h>
-#include "../3rdparty/OpenGL/glew.h"
-#include <gl/gl.h>
+
+#include "../3rdparty/gl.h"
 
 #include <vector>
 

@@ -16,9 +16,7 @@
 #include "win32_ogl.h"
 #include <windows.h>
 
-#include "../3rdparty/OpenGL/glew.h"
-#include "../3rdparty/OpenGL/wglew.h"
-#include <gl/gl.h>
+#include "../3rdparty/gl.h"
 
 #include "../safeguards.h"
 
@@ -132,7 +130,7 @@ void VideoDriver_Win32_OGL::DoPaintWindow(void *pdc)
 	}
 
 	blitter->Finish();
-//	SwapBuffers(_wnd.dc);
+	SwapBuffers(_wnd.dc);
 }
 
 const char *VideoDriver_Win32_OGL::DoStart()
@@ -143,21 +141,18 @@ const char *VideoDriver_Win32_OGL::DoStart()
 
 	HGLRC imm = wglCreateContext(_wnd.dc);
 	wglMakeCurrent(_wnd.dc, imm);
-	glewInit();
+	if (!gladLoadGLLoader((GLADloadproc)wglGetProcAddress)) return "Failed to init glad!";
 
-	if (!glewIsSupported("GL_VERSION_3_3")) return "OpenGL 3.3 or greater is required!";
+	if (!GLAD_GL_VERSION_3_3) return "OpenGL 3.3 or greater is required!";
 
 	int flags = 0;
 #ifdef _DEBUG
 	flags |= WGL_CONTEXT_DEBUG_BIT_ARB/* | WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB*/;
 #endif
 	int attribs[] = {
-//		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-//		WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-//		WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-//		WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-//		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		WGL_CONTEXT_FLAGS_ARB, flags,
 		0, 0
 	};
@@ -184,11 +179,7 @@ const char *VideoDriver_Win32_OGL::DoStart()
 	DebugMsg("Version:      %s", glGetString(GL_VERSION));
 	DebugMsg("GLSL Version: %s", glslVersion ? (const char*)(glslVersion) : "NONE");
 
-	int major = 0;
-	int minor = 0;
-	glGetIntegerv(GL_MAJOR_VERSION, &major);
-	glGetIntegerv(GL_MINOR_VERSION, &minor);
-	if ((major > 3) && ((major != 4) || (minor >= 3))) _opengl_ver = 1; // running 4.3
+	if (GLAD_GL_VERSION_4_3) _opengl_ver = 1; // running 4.3
 	return nullptr;
 }
 
