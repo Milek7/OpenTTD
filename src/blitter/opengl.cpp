@@ -1146,6 +1146,9 @@ void Blitter_OpenGL::Resolve(bool copy)
 
 void Blitter_OpenGL::Draw(Blitter::BlitterParams *bp, BlitterMode mode, ZoomLevel zoom)
 {
+	if (!_size_x)
+		return;
+
 	FlushPixels();
 
 	AtlasSprite *sp = (AtlasSprite*)(bp->sprite);
