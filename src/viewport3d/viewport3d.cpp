@@ -417,9 +417,8 @@ static void MakeInstanceData()
 
 	if (size > _model_instance_buffer_size) _model_instance_buffer_size = size;
 
-	glBindBuffer(GL_ARRAY_BUFFER, _model_instance_buffer);
-	glBufferData(GL_ARRAY_BUFFER, _model_instance_buffer_size * sizeof(ModelInstance), NULL, GL_STREAM_DRAW);
-	ModelInstance *instances = (ModelInstance*)(glMapBufferRange(GL_ARRAY_BUFFER, 0, _model_instance_buffer_size * sizeof(ModelInstance), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+	ModelInstance *instances_buf = new ModelInstance[_model_instance_buffer_size];
+	ModelInstance *instances = instances_buf;
 
 	GLuint base = 0;
 	_model_instance_cmd.clear();
@@ -448,8 +447,10 @@ static void MakeInstanceData()
 	}
 	_draw_model_data_set.clear();
 
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glBindBuffer(GL_ARRAY_BUFFER, _model_instance_buffer);
+	glBufferData(GL_ARRAY_BUFFER, _model_instance_buffer_size * sizeof(ModelInstance), instances_buf, GL_STREAM_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	delete[] instances_buf;
 }
 
 /* update a text effect (recompile layouts) */
