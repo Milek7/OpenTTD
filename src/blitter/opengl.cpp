@@ -99,7 +99,7 @@ GLuint ShaderLoad(const char *file, GLenum type, const char *opts = nullptr)
 				std::vector<char> log;
 				log.resize(logSize);
 				glGetShaderInfoLog(shader, (GLsizei)(log.size()), &logSize, log.data());
-				DEBUG(driver, 0, "Shader '%s' compilation:\r\n%s", file, log.data());
+				DEBUG(driver, 0, "Shader '%s' compilation:%s", file, log.data());
 //				OutputDebugstringA(log.Get(0));
 			}
 		}
@@ -1146,6 +1146,9 @@ void Blitter_OpenGL::Resolve(bool copy)
 
 void Blitter_OpenGL::Draw(Blitter::BlitterParams *bp, BlitterMode mode, ZoomLevel zoom)
 {
+	if (!_size_x)
+		return;
+
 	FlushPixels();
 
 	AtlasSprite *sp = (AtlasSprite*)(bp->sprite);

@@ -1217,7 +1217,7 @@ void DrawMouseCursor()
 	Blitter *blitter = BlitterFactory::GetCurrentBlitter();
 
 	/* Don't draw the mouse cursor if the screen is not ready */
-	if ((_screen.dst_ptr == nullptr) && !blitter->Hardware()) return;
+	if ((_screen.dst_ptr == nullptr) && (!blitter->Hardware() || _screen.width == 0)) return;
 	
 	/* Redraw mouse cursor but only when it's inside the window */
 	if (!_cursor.in_window) return;
