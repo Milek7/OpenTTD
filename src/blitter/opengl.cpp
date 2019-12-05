@@ -61,16 +61,32 @@ GLuint ShaderLoad(const char *file, GLenum type, const char *opts = nullptr)
 		}
 	}
 
-	const char *ver = (_opengl_ver > 0) ? "#version 330\r\n" : "#version 400\r\n";
-	const char *extension = "#extension all : warn\r\n#extension GL_EXT_texture_array : require\r\n";
-	const char *extension40 = (_opengl_ver > 0) ? "#extension GL_ARB_texture_query_lod : require\r\n" : "";
-	const char *options = opts ? opts : "";
-	const char *ver33 = (_opengl_ver > 0) ? "\r\n" : "#define GL_VERSION_3_3\r\n\r\n";
+	std::string header;
+
+	if (GLAD_GL_VERSION_4_3) {
+		header += "#version 400\n";
+		header += "#extension GL_ARB_texture_query_lod : require\n";
+	} else if (GLAD_GL_VERSION_3_3) {
+		header += "#version 330\n";
+	} else {
+		header += "#version 300 es\n";
+		header += "precision highp float;\n";
+		header += "precision highp sampler2DArray;\n";
+		header += "precision highp sampler2DShadow;\n";
+	}
+
+	if (opts) {
+		header += std::string(opts);
+	}
+
+	if (!GLAD_GL_VERSION_4_3) {
+		header += "#define _GL_VERSION_3_3\n";
+	}
 
 	GLuint shader = glCreateShader(type);
 	{
-		const char *strings[6] = { ver, extension, extension40, options, ver33, text.data() };
-		glShaderSource(shader, 6, strings, nullptr);
+		const char *strings[2] = { header.c_str(), text.data() };
+		glShaderSource(shader, 2, strings, nullptr);
 	}
 	glCompileShader(shader);
 	{
@@ -259,19 +275,19 @@ void Blitter_OpenGL::UpdatePal()
 	{
 		glGenTextures(1, &_pal_texture);
 
-		glBindTexture(GL_TEXTURE_1D, _pal_texture);
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, 256, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, 1);
-		glBindTexture(GL_TEXTURE_1D, 0);
+		glBindTexture(GL_TEXTURE_2D, _pal_texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 1);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	
-	glBindTexture(GL_TEXTURE_1D, _pal_texture);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, GL_BGRA, GL_UNSIGNED_BYTE, _pal_data);
-	glBindTexture(GL_TEXTURE_1D, 0);
+	glBindTexture(GL_TEXTURE_2D, _pal_texture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 1, GL_RGBA, GL_UNSIGNED_BYTE, _pal_data);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	_pal_dirty = 0;
 }
@@ -987,7 +1003,7 @@ void Blitter_OpenGL::DrawBuffers(int size_x, int size_y)
 		glUniform4f(_batch_uniforms_link[1], 1.0f / (float)(ATLAS_SIZE), 1.0f / (float)(ATLAS_SIZE), 1.0f, 1.0f / (float)(_recol_pal.size() + 1));
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, _pal_texture);
+		glBindTexture(GL_TEXTURE_2D, _pal_texture);
 		glUniform1i(_batch_uniforms_link[2], 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -1031,7 +1047,7 @@ void Blitter_OpenGL::DrawBuffers(int size_x, int size_y)
 		glBindVertexArray(0);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -1059,7 +1075,7 @@ void Blitter_OpenGL::BlitScreen()
 		glUniform4f(_blit_uniforms_link[0], +2.0f / (float)(_size_x), +2.0f / (float)(_size_y), -1.0f, -1.0f);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, _pal_texture);
+		glBindTexture(GL_TEXTURE_2D, _pal_texture);
 		glUniform1i(_blit_uniforms_link[1], 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -1088,7 +1104,7 @@ void Blitter_OpenGL::BlitScreen()
 		glBindVertexArray(0);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -1609,7 +1625,12 @@ void Blitter_OpenGL::ScrollBuffer(void *video, int &left, int &top, int &width, 
 
 void Blitter_OpenGL::PaletteAnimate(const Palette &palette)
 {
-	memcpy(&_pal_data[0], palette.palette, 256 * 4);
+	for (size_t i = 0; i < 256; i++) {
+		_pal_data[i * 4 + 0] = palette.palette[i].r;
+		_pal_data[i * 4 + 1] = palette.palette[i].g;
+		_pal_data[i * 4 + 2] = palette.palette[i].b;
+		_pal_data[i * 4 + 3] = palette.palette[i].a;
+	}
 	_pal_dirty = 1;
 }
 
@@ -1638,7 +1659,7 @@ void Blitter_OpenGL::Flush()
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glDrawBuffers(2, drawBuffers);
 
-	if (_multisample_set > 0) glEnable(GL_MULTISAMPLE);
+	if (_multisample_set > 0 && GLAD_GL_VERSION_3_3) glEnable(GL_MULTISAMPLE);
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
@@ -1653,7 +1674,7 @@ void Blitter_OpenGL::Flush()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
-	if (_multisample_set > 0) glDisable(GL_MULTISAMPLE);
+	if (_multisample_set > 0 && GLAD_GL_VERSION_3_3) glDisable(GL_MULTISAMPLE);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -1731,7 +1752,7 @@ void Blitter_OpenGL::Start3D()
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glDrawBuffers(2, drawBuffers);
 
-	if (_multisample_set > 0) glEnable(GL_MULTISAMPLE);
+	if (_multisample_set > 0 && GLAD_GL_VERSION_3_3) glEnable(GL_MULTISAMPLE);
 }
 
 void Blitter_OpenGL::Flush3D(int size_x, int size_y)
@@ -1752,7 +1773,7 @@ void Blitter_OpenGL::Flush3D(int size_x, int size_y)
 
 void Blitter_OpenGL::Finish3D()
 {
-	if (_multisample_set > 0) glDisable(GL_MULTISAMPLE);
+	if (_multisample_set > 0 && GLAD_GL_VERSION_3_3) glDisable(GL_MULTISAMPLE);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

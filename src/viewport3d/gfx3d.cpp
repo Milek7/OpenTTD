@@ -349,8 +349,8 @@ static void RedrawWindowViewport(Window *vp)
 
 		/* configure to fill the stencil mask, color + pal */
 //		glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		//glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		//glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
 
 		glDisable(GL_DEPTH_TEST);
@@ -367,8 +367,8 @@ static void RedrawWindowViewport(Window *vp)
 		/* configure to draw the viewport */
 		glViewport(vp->viewport->left, _screen.height - vp->viewport->top - vp->viewport->height, vp->viewport->width, vp->viewport->height);
 
-		glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // not using global screen blit palette resolver
+		//glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		//glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // not using global screen blit palette resolver
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 		glStencilMask(0);
 
