@@ -2371,7 +2371,7 @@ static void DrawDataColor(const ViewPort *vp)
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindSampler(0, _sampler[0]);
-		glBindTexture(GL_TEXTURE_1D, blitter->PalTexture());
+		glBindTexture(GL_TEXTURE_2D, blitter->PalTexture());
 		glUniform1i(_land_uniforms_link[3], 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -2418,11 +2418,15 @@ static void DrawDataColor(const ViewPort *vp)
 			glVertexAttribPointer((GLuint)(_land_attribs_link[4]), 3, GL_FLOAT, GL_FALSE, sizeof(TileVertex), (void*)(cpp_offsetof(TileVertex, nrm)));
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
-		glMultiDrawArrays(GL_TRIANGLES, _draw_seg_first.data(), _draw_seg_count.data(), (GLsizei)(_draw_seg_first.size()));
+		if (GLAD_GL_VERSION_3_3)
+			glMultiDrawArrays(GL_TRIANGLES, _draw_seg_first.data(), _draw_seg_count.data(), (GLsizei)(_draw_seg_first.size()));
+		else
+			for (size_t i = 0; i < _draw_seg_first.size(); i++)
+				glDrawArrays(GL_TRIANGLES, _draw_seg_first[i], _draw_seg_count[i]);
 		glBindVertexArray(0);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindSampler(0, 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -2453,7 +2457,7 @@ static void DrawDataColor(const ViewPort *vp)
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindSampler(0, _sampler[0]);
-		glBindTexture(GL_TEXTURE_1D, blitter->PalTexture());
+		glBindTexture(GL_TEXTURE_2D, blitter->PalTexture());
 		glUniform1i(_land_sel_uniforms_link[2], 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -2486,7 +2490,11 @@ static void DrawDataColor(const ViewPort *vp)
 			glVertexAttribPointer((GLuint)(_land_sel_attribs_link[3]), 2, GL_FLOAT, GL_FALSE, sizeof(TileVertex), (void*)(cpp_offsetof(TileVertex, mip[1])));
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
-		glMultiDrawArrays(GL_TRIANGLES, _draw_sel_first.data(), _draw_sel_count.data(), (GLsizei)(_draw_sel_first.size()));
+		if (GLAD_GL_VERSION_3_3)
+			glMultiDrawArrays(GL_TRIANGLES, _draw_sel_first.data(), _draw_sel_count.data(), (GLsizei)(_draw_sel_first.size()));
+		else
+			for (size_t i = 0; i < _draw_sel_first.size(); i++)
+				glDrawArrays(GL_TRIANGLES, _draw_sel_first[i], _draw_sel_count[i]);
 		glBindVertexArray(0);
 
 		glActiveTexture(GL_TEXTURE0);
@@ -2518,7 +2526,7 @@ static void DrawDataColor(const ViewPort *vp)
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindSampler(0, _sampler[0]);
-		glBindTexture(GL_TEXTURE_1D, blitter->PalTexture());
+		glBindTexture(GL_TEXTURE_2D, blitter->PalTexture());
 		glUniform1i(_object_uniforms_link[3], 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -2565,7 +2573,7 @@ static void DrawDataColor(const ViewPort *vp)
 //			glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, _model_instance_cmd.data(), (GLsizei)(_model_instance_cmd.size()), sizeof(DrawElementsIndirectCmd));
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
-		else
+		else if (GLAD_GL_VERSION_3_3)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, _model_vertex_buffer);
 			glVertexAttribPointer((GLuint)(_object_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(cpp_offsetof(ModelVertex, pos)));
@@ -2587,14 +2595,38 @@ static void DrawDataColor(const ViewPort *vp)
 				
 				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, cmd.count, GL_UNSIGNED_INT, (void*)(cmd.firstIndex * sizeof(uint32)), cmd.instanceCount, cmd.baseVertex);
 			}
+			for (int i = 3; i < 8; i++) glVertexAttribDivisor((GLuint)(_object_attribs_link[i]), 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		} else {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _model_index_buffer);
 			for (int i = 3; i < 8; i++) glVertexAttribDivisor((GLuint)(_object_attribs_link[i]), 1);
+			for (const DrawElementsIndirectCmd &cmd : _model_instance_cmd)
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, _model_vertex_buffer);
+				size_t vertexOffset = cmd.baseVertex * sizeof(ModelVertex);
+				glVertexAttribPointer((GLuint)(_object_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, pos)));
+				glVertexAttribPointer((GLuint)(_object_attribs_link[1]), 2, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, tex)));
+				glVertexAttribPointer((GLuint)(_object_attribs_link[2]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, nrm)));
+
+				glBindBuffer(GL_ARRAY_BUFFER, _model_instance_buffer);
+				size_t offset = cmd.baseInstance * sizeof(ModelInstance);
+				glVertexAttribPointer((GLuint)(_object_attribs_link[3]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, loc)));
+				glVertexAttribPointer((GLuint)(_object_attribs_link[4]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, mip)));
+				glVertexAttribPointer((GLuint)(_object_attribs_link[5]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[0])));
+				glVertexAttribPointer((GLuint)(_object_attribs_link[6]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[1])));
+				glVertexAttribPointer((GLuint)(_object_attribs_link[7]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[2])));
+				
+				glDrawElementsInstanced(GL_TRIANGLES, cmd.count, GL_UNSIGNED_INT, (void*)(cmd.firstIndex * sizeof(uint32)), cmd.instanceCount);
+			}
+			for (int i = 3; i < 8; i++) glVertexAttribDivisor((GLuint)(_object_attribs_link[i]), 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 		glBindVertexArray(0);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindSampler(0, 0);
 
 		glActiveTexture(GL_TEXTURE1);
@@ -2664,7 +2696,7 @@ static void DrawDataTransp(const ViewPort *vp)
 //			glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, _model_instance_cmd.data(), (GLsizei)(_model_instance_cmd.size()), sizeof(DrawElementsIndirectCmd));
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
-		else
+		else if (GLAD_GL_VERSION_3_3)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, _model_vertex_buffer);
 			glVertexAttribPointer((GLuint)(_fill_object_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(cpp_offsetof(ModelVertex, pos)));
@@ -2684,6 +2716,29 @@ static void DrawDataTransp(const ViewPort *vp)
 				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[6]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[2])));
 
 				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, cmd.count, GL_UNSIGNED_INT, (void*)(cmd.firstIndex * sizeof(uint32)), cmd.instanceCount, cmd.baseVertex);
+			}
+			for (int i = 2; i < 7; i++) glVertexAttribDivisor((GLuint)(_fill_object_attribs_link[i]), 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		} else {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _model_index_buffer);
+			for (int i = 2; i < 7; i++) glVertexAttribDivisor((GLuint)(_fill_object_attribs_link[i]), 1);
+			for (const DrawElementsIndirectCmd &cmd : _model_instance_cmd)
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, _model_vertex_buffer);
+				size_t vertexOffset = cmd.baseVertex * sizeof(ModelVertex);
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, pos)));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[1]), 2, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, tex)));
+
+				glBindBuffer(GL_ARRAY_BUFFER, _model_instance_buffer);
+				size_t offset = cmd.baseInstance * sizeof(ModelInstance);
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[2]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, loc)));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[3]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, mip)));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[4]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[0])));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[5]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[1])));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[6]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[2])));
+
+				glDrawElementsInstanced(GL_TRIANGLES, cmd.count, GL_UNSIGNED_INT, (void*)(cmd.firstIndex * sizeof(uint32)), cmd.instanceCount);
 			}
 			for (int i = 2; i < 7; i++) glVertexAttribDivisor((GLuint)(_fill_object_attribs_link[i]), 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -2712,7 +2767,7 @@ static void DrawDataDepth()
 	glViewport(0, 0, SHADOW_MAP_SIZE >> _shadow_level, SHADOW_MAP_SIZE >> _shadow_level);
 	glBindFramebuffer(GL_FRAMEBUFFER, _shadow_frame[_shadow_level]);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	glDrawBuffer(GL_NONE);
+	glDrawBuffers(0, nullptr);
 	
 	glEnable(GL_POLYGON_OFFSET_FILL);
 
@@ -2747,7 +2802,11 @@ static void DrawDataDepth()
 //			glVertexAttribPointer((GLuint)(_fill_land_attribs_link[3]), 2, GL_FLOAT, GL_FALSE, sizeof(TileVertex), (void*)(cpp_offsetof(TileVertex, mip[0])));
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
-		glMultiDrawArrays(GL_TRIANGLES, _draw_seg_first.data(), _draw_seg_count.data(), (GLsizei)(_draw_seg_first.size()));
+		if (GLAD_GL_VERSION_3_3)
+			glMultiDrawArrays(GL_TRIANGLES, _draw_seg_first.data(), _draw_seg_count.data(), (GLsizei)(_draw_seg_first.size()));
+		else
+			for (size_t i = 0; i < _draw_seg_first.size(); i++)
+				glDrawArrays(GL_TRIANGLES, _draw_seg_first[i], _draw_seg_count[i]);
 		glBindVertexArray(0);
 
 		glActiveTexture(GL_TEXTURE0);
@@ -2792,7 +2851,7 @@ static void DrawDataDepth()
 //			glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, _model_instance_cmd.data(), (GLsizei)(_model_instance_cmd.size()), sizeof(DrawElementsIndirectCmd));
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		}
-		else
+		else if (GLAD_GL_VERSION_3_3)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, _model_vertex_buffer);
 			glVertexAttribPointer((GLuint)(_fill_object_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(cpp_offsetof(ModelVertex, pos)));
@@ -2812,6 +2871,29 @@ static void DrawDataDepth()
 				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[6]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[2])));
 
 				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, cmd.count, GL_UNSIGNED_INT, (void*)(cmd.firstIndex * sizeof(uint32)), cmd.instanceCount, cmd.baseVertex);
+			}
+			for (int i = 2; i < 7; i++) glVertexAttribDivisor((GLuint)(_fill_object_attribs_link[i]), 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		} else {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _model_index_buffer);
+			for (int i = 2; i < 7; i++) glVertexAttribDivisor((GLuint)(_fill_object_attribs_link[i]), 1);
+			for (const DrawElementsIndirectCmd &cmd : _model_instance_cmd)
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, _model_vertex_buffer);
+				size_t vertexOffset = cmd.baseVertex * sizeof(ModelVertex);
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, pos)));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[1]), 2, GL_FLOAT, GL_FALSE, sizeof(ModelVertex), (void*)(vertexOffset + cpp_offsetof(ModelVertex, tex)));
+
+				glBindBuffer(GL_ARRAY_BUFFER, _model_instance_buffer);
+				size_t offset = cmd.baseInstance * sizeof(ModelInstance);
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[2]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, loc)));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[3]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, mip)));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[4]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[0])));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[5]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[1])));
+				glVertexAttribPointer((GLuint)(_fill_object_attribs_link[6]), 4, GL_FLOAT, GL_FALSE, sizeof(ModelInstance), (void*)(offset + cpp_offsetof(ModelInstance, matr[2])));
+
+				glDrawElementsInstanced(GL_TRIANGLES, cmd.count, GL_UNSIGNED_INT, (void*)(cmd.firstIndex * sizeof(uint32)), cmd.instanceCount);
 			}
 			for (int i = 2; i < 7; i++) glVertexAttribDivisor((GLuint)(_fill_object_attribs_link[i]), 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

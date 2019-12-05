@@ -169,16 +169,29 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 			}
 		}
 
-
+#if 0
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 		_sdl_gl = SDL_GL_CreateContext(_sdl_window);
 		SDL_GL_MakeCurrent(_sdl_window, _sdl_gl);
+
 		if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
 			DEBUG(driver, 0, "SDL2: Failed to init glad");
 			return false;
 		}
+#else
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+		_sdl_gl = SDL_GL_CreateContext(_sdl_window);
+		SDL_GL_MakeCurrent(_sdl_window, _sdl_gl);
+
+		if (!gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress)) {
+			DEBUG(driver, 0, "SDL2: Failed to init glad");
+			return false;
+		}
+#endif
 		_opengl_ver = GLAD_GL_VERSION_4_3 ? 1 : 0;
 	}
 
