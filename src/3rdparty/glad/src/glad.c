@@ -20,6 +20,7 @@
         https://glad.dav1d.de/#profile=core&language=c&specification=gl&api=gl%3D4.3&api=gles2%3D3.1&extensions=GL_ARB_depth_buffer_float&extensions=GL_NV_framebuffer_multisample_coverage
 */
 
+#ifndef __EMSCRIPTEN__
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1815,3 +1816,4 @@ int gladLoadGLES2Loader(GLADloadproc load) {
 	return GLVersion.major != 0 || GLVersion.minor != 0;
 }
 
+#endif

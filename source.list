@@ -960,8 +960,8 @@ script/api/script_window.cpp
 	blitter/8bpp_optimized.hpp
 	blitter/8bpp_simple.cpp
 	blitter/8bpp_simple.hpp
-	blitter/opengl.cpp
 #end
+blitter/opengl.cpp
 blitter/base.hpp
 blitter/common.hpp
 blitter/factory.hpp
@@ -1115,8 +1115,8 @@ video/null_v.cpp
 		video/win32_gdi.cpp
 		video/win32_ogl.cpp
 	#end
-	3rdparty/glad/src/glad.c
 #end
+3rdparty/glad/src/glad.c
 
 # Music
 #if DEDICATED
