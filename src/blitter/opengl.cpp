@@ -27,7 +27,6 @@
 
 #define glBlitFramebufferLT(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, mask, filter) glBlitFramebuffer(sx0, _size_y - (sy0), sx1, _size_y - (sy1), dx0, _size_y - (dy0), dx1, _size_y - (dy1), mask, filter);
 
-extern int _opengl_ver;
 extern DrawPixelInfo _screen;
 
 /** Instantiation of the OpenGL blitter factory. */
@@ -762,7 +761,7 @@ void Blitter_OpenGL::UpdateBatchProgram()
 
 	glBindVertexArray(_batch_vertex_format);
 	for (int i = 0; i < 5; i++) glEnableVertexAttribArray((GLuint)(_batch_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 5; i++) glVertexAttribBinding((GLuint)(_batch_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_batch_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(Vertex, pos)));
@@ -799,7 +798,7 @@ void Blitter_OpenGL::UpdateBlitProgram()
 
 	glBindVertexArray(_blit_vertex_format);
 	for (int i = 0; i < 2; i++) glEnableVertexAttribArray((GLuint)(_blit_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 2; i++) glVertexAttribBinding((GLuint)(_blit_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_blit_attribs_link[0]), 2, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(Vertex, pos)));
@@ -828,7 +827,7 @@ void Blitter_OpenGL::UpdatePixelProgram()
 
 	glBindVertexArray(_pixel_vertex_format);
 	for (int i = 0; i < 2; i++) glEnableVertexAttribArray((GLuint)(_pixel_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 2; i++) glVertexAttribBinding((GLuint)(_pixel_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_pixel_attribs_link[0]), 2, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(Vertex, pos)));
@@ -940,7 +939,7 @@ void Blitter_OpenGL::FlushPixels()
 		glUniform1i(_pixel_uniforms_link[2], 0);
 
 		glBindVertexArray(_pixel_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _vertex_buffer, 0, sizeof(Vertex));
 		}
@@ -1027,7 +1026,7 @@ void Blitter_OpenGL::DrawBuffers(int size_x, int size_y)
 		glUniform1i(_batch_uniforms_link[7], 5);
 
 		glBindVertexArray(_batch_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _vertex_buffer, 0, sizeof(Vertex));
 		}
@@ -1087,7 +1086,7 @@ void Blitter_OpenGL::BlitScreen()
 		glUniform1i(_blit_uniforms_link[3], 2);
 
 		glBindVertexArray(_blit_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _vertex_buffer, 0, sizeof(Vertex));
 		}

@@ -31,8 +31,6 @@ extern int _wnd_height;
 
 extern Palette _local_palette;
 
-int _opengl_ver = 0;
-
 static FVideoDriver_Win32_OGL iFVideoDriver_Win32_OGL;
 
 #define DebugMsg(...)	debug("OpenGL", __VA_ARGS__)
@@ -179,7 +177,6 @@ const char *VideoDriver_Win32_OGL::DoStart()
 	DebugMsg("Version:      %s", glGetString(GL_VERSION));
 	DebugMsg("GLSL Version: %s", glslVersion ? (const char*)(glslVersion) : "NONE");
 
-	if (GLAD_GL_VERSION_4_3) _opengl_ver = 1; // running 4.3
 	return nullptr;
 }
 

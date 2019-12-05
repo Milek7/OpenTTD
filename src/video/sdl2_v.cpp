@@ -42,8 +42,6 @@ static Palette _local_palette;
 static int _window_size_w;
 static int _window_size_h;
 
-int _opengl_ver = 0;
-
 static void InitPalette()
 {
 	_local_palette = _cur_palette;
@@ -192,7 +190,6 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 			return false;
 		}
 #endif
-		_opengl_ver = GLAD_GL_VERSION_4_3 ? 1 : 0;
 	}
 
 	if (resize) SDL_SetWindowSize(_sdl_window, w, h);

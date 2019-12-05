@@ -60,8 +60,6 @@ static GLuint _null_vertex_format;		// null program vertex format
 static GLint _null_attribs_link[1];		// null program attributes links
 static GLint _null_uniforms_link[1];	// null program uniforms links
 
-extern int _opengl_ver;
-
 extern uint _dirty_block_colour;
 extern void DrawOverlappedWindow(Window *w, int left, int top, int right, int bottom);
 
@@ -248,7 +246,7 @@ static void UpdateNullProgram()
 
 	glBindVertexArray(_null_vertex_format);
 	for (int i = 0; i < 1; i++) glEnableVertexAttribArray((GLuint)(_null_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 1; i++) glVertexAttribBinding((GLuint)(_null_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_null_attribs_link[0]), 2, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(Vertex, pos)));
@@ -292,7 +290,7 @@ static void DrawBuffers()
 		glUniform4f(_null_uniforms_link[0], +2.0f/(float)(_screen.width), -2.0f/(float)(_screen.height), -1.0f, +1.0f);
 
 		glBindVertexArray(_null_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _vertex_buffer, 0, sizeof(Vertex));
 		}

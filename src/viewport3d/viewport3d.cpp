@@ -50,8 +50,6 @@ static int _multisample_set = _settings_client.gui.opengl_multisample; // curren
 
 ///
 
-extern int _opengl_ver;				// we are running 4.3 or 3.3?
-
 extern TileInfo *_cur_ti;			// info about currently drawn tile
 extern DrawPixelInfo *_cur_dpi;		// 2D drawing control data
 extern DrawPixelInfo _screen;		// screen drawing control data
@@ -2106,7 +2104,7 @@ static void UpdateLandProgram()
 
 	glBindVertexArray(_land_vertex_format);
 	for (int i = 0; i < 5; i++) glEnableVertexAttribArray((GLuint)(_land_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 5; i++) glVertexAttribBinding((GLuint)(_land_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_land_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(TileVertex, pos)));
@@ -2146,7 +2144,7 @@ static void UpdateLandSelProgram()
 
 	glBindVertexArray(_land_sel_vertex_format);
 	for (int i = 0; i < 4; i++) glEnableVertexAttribArray((GLuint)(_land_sel_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 4; i++) glVertexAttribBinding((GLuint)(_land_sel_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_land_sel_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(TileVertex, pos)));
@@ -2187,7 +2185,7 @@ static void UpdateObjectProgram()
 
 	glBindVertexArray(_object_vertex_format);
 	for (int i = 0; i < 8; i++) glEnableVertexAttribArray((GLuint)(_object_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 3; i++) glVertexAttribBinding((GLuint)(_object_attribs_link[i]), 0);
 		for (int i = 3; i < 8; i++) glVertexAttribBinding((GLuint)(_object_attribs_link[i]), 1);
@@ -2231,7 +2229,7 @@ static void UpdateFillLandProgram()
 
 	glBindVertexArray(_fill_land_vertex_format);
 	for (int i = 0; i < 3; i++) glEnableVertexAttribArray((GLuint)(_fill_land_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 3; i++) glVertexAttribBinding((GLuint)(_fill_land_attribs_link[i]), 0);
 		glVertexAttribFormat((GLuint)(_fill_land_attribs_link[0]), 3, GL_FLOAT, GL_FALSE, (GLuint)(cpp_offsetof(TileVertex, pos)));
@@ -2268,7 +2266,7 @@ static void UpdateFillObjectProgram()
 
 	glBindVertexArray(_fill_object_vertex_format);
 	for (int i = 0; i < 7; i++) glEnableVertexAttribArray((GLuint)(_fill_object_attribs_link[i]));
-	if (_opengl_ver > 0)
+	if (GLAD_GL_VERSION_4_3)
 	{
 		for (int i = 0; i < 2; i++) glVertexAttribBinding((GLuint)(_fill_object_attribs_link[i]), 0);
 		for (int i = 2; i < 7; i++) glVertexAttribBinding((GLuint)(_fill_object_attribs_link[i]), 1);
@@ -2404,7 +2402,7 @@ static void DrawDataColor(const ViewPort *vp)
 
 		glDepthFunc(GL_LESS);
 		glBindVertexArray(_land_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _land.vertex_buffer, 0, sizeof(TileVertex));
 		}
@@ -2477,7 +2475,7 @@ static void DrawDataColor(const ViewPort *vp)
 
 		glDepthFunc(GL_LEQUAL);
 		glBindVertexArray(_land_sel_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _land.vertex_buffer, 0, sizeof(TileVertex));
 		}
@@ -2559,7 +2557,7 @@ static void DrawDataColor(const ViewPort *vp)
 
 		glDepthFunc(GL_LESS);
 		glBindVertexArray(_object_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _model_vertex_buffer, 0, sizeof(ModelVertex));
 			glBindVertexBuffer(1, _model_instance_buffer, 0, sizeof(ModelInstance));
@@ -2682,7 +2680,7 @@ static void DrawDataTransp(const ViewPort *vp)
 
 		glDepthFunc(GL_LESS);
 		glBindVertexArray(_fill_object_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _model_vertex_buffer, 0, sizeof(ModelVertex));
 			glBindVertexBuffer(1, _model_instance_buffer, 0, sizeof(ModelInstance));
@@ -2789,7 +2787,7 @@ static void DrawDataDepth()
 		glDepthFunc(GL_LESS);
 		glPolygonOffset(1.0f, 4096.0f); // may be 1.0f is even too much
 		glBindVertexArray(_fill_land_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _land.vertex_buffer, 0, sizeof(TileVertex));
 		}
@@ -2837,7 +2835,7 @@ static void DrawDataDepth()
 		glDepthFunc(GL_LESS);
 		glPolygonOffset(1.0f, 4096.0f); // may be 1.0f is even too much
 		glBindVertexArray(_fill_object_vertex_format);
-		if (_opengl_ver > 0)
+		if (GLAD_GL_VERSION_4_3)
 		{
 			glBindVertexBuffer(0, _model_vertex_buffer, 0, sizeof(ModelVertex));
 			glBindVertexBuffer(1, _model_instance_buffer, 0, sizeof(ModelInstance));
