@@ -2514,7 +2514,9 @@ static void DrawDataColor(const ViewPort *vp)
 	glUseProgram(0);
 
 	glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-	glEnable(GL_SAMPLE_ALPHA_TO_ONE);
+	if (GLAD_GL_VERSION_3_3) {
+		glEnable(GL_SAMPLE_ALPHA_TO_ONE);
+	}
 
 	glUseProgram(_object_program);
 	{
@@ -2649,7 +2651,9 @@ static void DrawDataColor(const ViewPort *vp)
 	glUseProgram(0);
 
 	glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-	glDisable(GL_SAMPLE_ALPHA_TO_ONE);
+	if (GLAD_GL_VERSION_3_3) {
+		glDisable(GL_SAMPLE_ALPHA_TO_ONE);
+	}
 }
 
 /* Draw transparent objects */
