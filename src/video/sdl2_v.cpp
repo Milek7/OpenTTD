@@ -775,10 +775,12 @@ void VideoDriver_SDL::LoopOnce()
 		UpdateWindows();
 		_local_palette = _cur_palette;
 	} else {
+#ifndef __EMSCRIPTEN__
 		/* Release the thread while sleeping */
 		if (_draw_mutex != nullptr) draw_lock.unlock();
 		CSleep(1);
 		if (_draw_mutex != nullptr) draw_lock.lock();
+#endif
 
 		NetworkDrawChatMessage();
 		DrawMouseCursor();
