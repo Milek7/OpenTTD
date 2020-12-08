@@ -1,4 +1,5 @@
 Module.arguments.push('-mnull', '-snull', '-vsdl:relative_mode', '-c/user_data/openttd.cfg');
+Module['websocket'] = { url: 'wss://' };
 
 Module.preRun.push(function() {
     /* Because of the "-c" above, all user-data is stored in /user_data. */
