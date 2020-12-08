@@ -1243,7 +1243,6 @@ void DeterminePaths(const char *exe)
 		/* We are using the XDG configuration home for the config file,
 		 * then store the rest in the XDG data home folder. */
 		_personal_dir = _searchpaths[SP_PERSONAL_DIR_XDG];
-		FioCreateDirectory(_personal_dir);
 	} else
 #endif
 	{
@@ -1251,9 +1250,9 @@ void DeterminePaths(const char *exe)
 	}
 
 	/* Make the necessary folders */
-#if defined(WITH_PERSONAL_DIR)
 	FioCreateDirectory(config_dir);
-	if (config_dir != _personal_dir) FioCreateDirectory(_personal_dir);
+#if defined(WITH_PERSONAL_DIR)
+	FioCreateDirectory(_personal_dir);
 #endif
 
 	DEBUG(misc, 3, "%s found as personal directory", _personal_dir);
