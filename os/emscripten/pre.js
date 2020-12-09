@@ -1,5 +1,8 @@
 Module.arguments.push('-mnull', '-snull', '-vsdl:relative_mode');
-Module['websocket'] = { url: 'wss://' };
+Module['websocket'] = { url: function(addr, port)
+{
+       return 'wss://milek7.pl:4000/' + addr + '/' + port;
+}};
 
 Module.preRun.push(function() {
     personal_dir = '/home/web_user/.openttd';

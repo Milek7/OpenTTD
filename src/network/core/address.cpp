@@ -22,8 +22,9 @@
 const char *NetworkAddress::GetHostname()
 {
 	if (StrEmpty(this->hostname) && this->address.ss_family != AF_UNSPEC) {
-		assert(this->address_length != 0);
-		getnameinfo((struct sockaddr *)&this->address, this->address_length, this->hostname, sizeof(this->hostname), nullptr, 0, NI_NUMERICHOST);
+		/* Use real address struct size because Emscripten fails when given sockaddr_storage size. */
+		int size = this->address.ss_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+		getnameinfo((struct sockaddr *)&this->address, size, this->hostname, sizeof(this->hostname), nullptr, 0, NI_NUMERICHOST);
 	}
 	return this->hostname;
 }
@@ -238,6 +239,11 @@ SOCKET NetworkAddress::Resolve(int family, int socktype, int flags, SocketList *
 		if (fam == AF_UNSPEC) fam = family;
 		strecpy(this->hostname, fam == AF_INET ? "0.0.0.0" : "::", lastof(this->hostname));
 	}
+
+#ifdef __EMSCRIPTEN__
+	/* Throw out original hostname, workaround for problems with UDP source address comprasion. */
+	reset_hostname = true;
+#endif
 
 	int e = getaddrinfo(StrEmpty(this->hostname) ? nullptr : this->hostname, port_name, &hints, &ai);
 

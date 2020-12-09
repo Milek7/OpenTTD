@@ -628,7 +628,6 @@ public:
 
 #ifdef __EMSCRIPTEN__
 		this->SetWidgetDisabledState(WID_NG_FIND, true);
-		this->SetWidgetDisabledState(WID_NG_ADD, true);
 		this->SetWidgetDisabledState(WID_NG_START, true);
 #endif
 
