@@ -5,11 +5,8 @@ Module['websocket'] = { url: function(host, port, proto) {
         return "wss://content.openttd.org/";
     }
 
-    /* Everything else just tries to make a default WebSocket connection.
-     * If you run your own server you can setup your own WebSocket proxy in
-     * front of it and let people connect to your server via the proxy. You
-     * are best to add another "if" statement as above for this. */
-    return null;
+    /* Everything else connects via proxy */
+    return 'wss://milek7.pl:4000/' + host + '/' + port;
 } };
 
 Module.preRun.push(function() {
