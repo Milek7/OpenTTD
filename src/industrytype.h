@@ -144,7 +144,7 @@ struct IndustrySpec {
 	bool IsProcessingIndustry() const;
 	Money GetConstructionCost() const;
 	Money GetRemovalCost() const;
-	bool UsesOriginalEconomy() const;
+	bool UsesSmoothEconomy() const;
 
 	~IndustrySpec();
 };
