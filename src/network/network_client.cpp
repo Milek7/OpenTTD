@@ -322,6 +322,13 @@ const char *_network_join_server_password = nullptr;
 /** Company password from -P argument */
 const char *_network_join_company_password = nullptr;
 
+/** Our crypto key material for the current identity */
+uint8 _network_key_material[hydro_sign_SEEDBYTES];
+/** Our crypto keypair for the current server */
+struct hydro_kx_keypair _network_keypair;
+/** Noise key exchange state */
+struct hydro_kx_state _network_kx_state;
+
 /** Make sure the server ID length is the same as a md5 hash. */
 assert_compile(NETWORK_SERVER_ID_LENGTH == 16 * 2 + 1);
 
@@ -342,16 +349,35 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::SendCompanyInformationQuery()
 	return NETWORK_RECV_STATUS_OKAY;
 }
 
+/** First step of Noise XX handshake. */
+NetworkRecvStatus ClientNetworkGameSocketHandler::SendHello()
+{
+	my_client->status = STATUS_HANDSHAKE;
+
+	_network_join_status = NETWORK_JOIN_STATUS_AUTHORIZING;
+	SetWindowDirty(WC_NETWORK_STATUS_WINDOW, WN_NETWORK_STATUS_WINDOW_JOIN);
+
+	Packet *p = new Packet(PACKET_CLIENT_HELLO);
+	p->Send_string(GetNetworkRevisionString());
+	p->Send_uint32(_openttd_newgrf_version);
+
+	uint8 packet[hydro_kx_XX_PACKET1BYTES];
+	hydro_kx_xx_1(&_network_kx_state, packet, nullptr);
+
+	for (size_t i = 0; i < sizeof(packet); i++) {
+		p->Send_uint8(packet[i]);
+	}
+
+	my_client->SendPacket(p);
+	return NETWORK_RECV_STATUS_OKAY;
+}
+
 /** Tell the server we would like to join. */
 NetworkRecvStatus ClientNetworkGameSocketHandler::SendJoin()
 {
 	my_client->status = STATUS_JOIN;
-	_network_join_status = NETWORK_JOIN_STATUS_AUTHORIZING;
-	SetWindowDirty(WC_NETWORK_STATUS_WINDOW, WN_NETWORK_STATUS_WINDOW_JOIN);
 
 	Packet *p = new Packet(PACKET_CLIENT_JOIN);
-	p->Send_string(GetNetworkRevisionString());
-	p->Send_uint32(_openttd_newgrf_version);
 	p->Send_string(_settings_client.network.client_name); // Client name
 	p->Send_uint8 (_network_join_as);     // PlayAs
 	p->Send_uint8 (NETLANG_ANY);          // Language
@@ -736,6 +762,32 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_CHECK_NEWGRFS(P
 	/* NewGRF mismatch, bail out */
 	ShowErrorMessage(STR_NETWORK_ERROR_NEWGRF_MISMATCH, INVALID_STRING_ID, WL_CRITICAL);
 	return ret;
+}
+
+NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_HANDSHAKE_2(Packet *p)
+{
+	if (this->status != STATUS_HANDSHAKE) return NETWORK_RECV_STATUS_MALFORMED_PACKET;
+
+	uint8 packet2[hydro_kx_XX_PACKET2BYTES];
+	uint8 packet3[hydro_kx_XX_PACKET3BYTES];
+
+	for (size_t i = 0; i < sizeof(packet2); i++) {
+		packet2[i] = p->Recv_uint8();
+	}
+
+	if (hydro_kx_xx_3(&_network_kx_state, &session_kp, packet3, nullptr, packet2, nullptr, &_network_keypair) != 0) {
+		return NETWORK_RECV_STATUS_MALFORMED_PACKET;
+	}
+	msg_id_rx = 0;
+	msg_id_tx = 0;
+
+	Packet *r = new Packet(PACKET_CLIENT_HANDSHAKE_3);
+	for (size_t i = 0; i < sizeof(packet3); i++) {
+		r->Send_uint8(packet3[i]);
+	}
+	my_client->SendPacket(r);
+
+	return SendJoin();
 }
 
 NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_NEED_GAME_PASSWORD(Packet *p)
@@ -1207,7 +1259,7 @@ void NetworkClient_Connected()
 	_frame_counter_server = 0;
 	last_ack_frame = 0;
 	/* Request the game-info */
-	MyClient::SendJoin();
+	MyClient::SendHello();
 }
 
 /**

@@ -30,6 +30,7 @@ static const uint16 NETWORK_DEFAULT_PORT          = 3979;         ///< The defau
 static const uint16 NETWORK_ADMIN_PORT            = 3977;         ///< The default port for admin network
 static const uint16 NETWORK_DEFAULT_DEBUGLOG_PORT = 3982;         ///< The default port debug-log is sent to (TCP)
 
+static const uint16 SEND_MTU_ENC                  = 1460 - 39;    ///< Number of bytes we can pack in a single packet leaving place for encryption header
 static const uint16 SEND_MTU                      = 1460;         ///< Number of bytes we can pack in a single packet
 
 static const byte NETWORK_GAME_ADMIN_VERSION      =    1;         ///< What version of the admin network do we use?

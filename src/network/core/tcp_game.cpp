@@ -53,6 +53,31 @@ NetworkRecvStatus NetworkGameSocketHandler::CloseConnection(bool error)
 	return this->CloseConnection(error ? NETWORK_RECV_STATUS_SERVER_ERROR : NETWORK_RECV_STATUS_CONN_LOST);
 }
 
+void NetworkGameSocketHandler::SendPacket(Packet *arg)
+{
+	if (arg->size < sizeof(PacketSize) + 1) {
+		NetworkTCPSocketHandler::SendPacket(arg);
+		return;
+	}
+
+	if ((PacketGameType)arg->buffer[sizeof(PacketSize)] <= PACKET_CIPHERTEXT) {
+		NetworkTCPSocketHandler::SendPacket(arg);
+		return;
+	}
+
+	Packet *encrypted = new Packet(PACKET_CIPHERTEXT);
+	arg->PrepareToSend();
+
+	encrypted->pos = encrypted->size;
+	assert(arg->size + 36 + sizeof(PacketSize) + 1 <= SEND_MTU);
+	hydro_secretbox_encrypt(&encrypted->buffer[encrypted->pos], arg->buffer, arg->size, msg_id_tx++, "CIP_TEXT", session_kp.tx);
+
+	encrypted->size += arg->size + 36;
+	encrypted->pos = encrypted->size;
+
+	delete arg;
+	NetworkTCPSocketHandler::SendPacket(encrypted);
+}
 
 /**
  * Handle the given packet, i.e. pass it to the right parser receive command.
@@ -65,7 +90,34 @@ NetworkRecvStatus NetworkGameSocketHandler::HandlePacket(Packet *p)
 
 	this->last_packet = _realtime_tick;
 
+	if (type > PACKET_CIPHERTEXT) {
+		this->CloseConnection();
+		return NETWORK_RECV_STATUS_MALFORMED_PACKET;
+	}
+	else if (type == PACKET_CIPHERTEXT) {
+		PacketSize size = p->size - p->pos;
+
+		Packet *decrypted = new Packet(this);
+
+		if (hydro_secretbox_decrypt(decrypted->buffer, &p->buffer[p->pos], size, msg_id_rx++, "CIP_TEXT", session_kp.rx) != 0) {
+			this->CloseConnection();
+			return NETWORK_RECV_STATUS_MALFORMED_PACKET;
+		}
+
+		p->size = size - 36;
+		p->pos = 0;
+		free(p->buffer);
+		p->buffer = decrypted->buffer;
+
+		p->PrepareToRead();
+		type = (PacketGameType)p->Recv_uint8();
+	}
+
 	switch (this->HasClientQuit() ? PACKET_END : type) {
+		case PACKET_CLIENT_HELLO:                 return this->Receive_CLIENT_HELLO(p);
+		case PACKET_SERVER_HANDSHAKE_2:           return this->Receive_SERVER_HANDSHAKE_2(p);
+		case PACKET_CLIENT_HANDSHAKE_3:           return this->Receive_CLIENT_HANDSHAKE_3(p);
+
 		case PACKET_SERVER_FULL:                  return this->Receive_SERVER_FULL(p);
 		case PACKET_SERVER_BANNED:                return this->Receive_SERVER_BANNED(p);
 		case PACKET_CLIENT_JOIN:                  return this->Receive_CLIENT_JOIN(p);
@@ -152,9 +204,13 @@ NetworkRecvStatus NetworkGameSocketHandler::ReceiveInvalidPacket(PacketGameType 
 	return NETWORK_RECV_STATUS_MALFORMED_PACKET;
 }
 
+NetworkRecvStatus NetworkGameSocketHandler::Receive_SERVER_HANDSHAKE_2(Packet *p) { return this->ReceiveInvalidPacket(PACKET_SERVER_HANDSHAKE_2); }
+NetworkRecvStatus NetworkGameSocketHandler::Receive_CLIENT_HANDSHAKE_3(Packet *p) { return this->ReceiveInvalidPacket(PACKET_CLIENT_HANDSHAKE_3); }
+NetworkRecvStatus NetworkGameSocketHandler::Receive_CIPHERTEXT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_CIPHERTEXT); }
+NetworkRecvStatus NetworkGameSocketHandler::Receive_CLIENT_JOIN(Packet *p) { return this->ReceiveInvalidPacket(PACKET_CLIENT_JOIN); }
 NetworkRecvStatus NetworkGameSocketHandler::Receive_SERVER_FULL(Packet *p) { return this->ReceiveInvalidPacket(PACKET_SERVER_FULL); }
 NetworkRecvStatus NetworkGameSocketHandler::Receive_SERVER_BANNED(Packet *p) { return this->ReceiveInvalidPacket(PACKET_SERVER_BANNED); }
-NetworkRecvStatus NetworkGameSocketHandler::Receive_CLIENT_JOIN(Packet *p) { return this->ReceiveInvalidPacket(PACKET_CLIENT_JOIN); }
+NetworkRecvStatus NetworkGameSocketHandler::Receive_CLIENT_HELLO(Packet *p) { return this->ReceiveInvalidPacket(PACKET_CLIENT_HELLO); }
 NetworkRecvStatus NetworkGameSocketHandler::Receive_SERVER_ERROR(Packet *p) { return this->ReceiveInvalidPacket(PACKET_SERVER_ERROR); }
 NetworkRecvStatus NetworkGameSocketHandler::Receive_CLIENT_COMPANY_INFO(Packet *p) { return this->ReceiveInvalidPacket(PACKET_CLIENT_COMPANY_INFO); }
 NetworkRecvStatus NetworkGameSocketHandler::Receive_SERVER_COMPANY_INFO(Packet *p) { return this->ReceiveInvalidPacket(PACKET_SERVER_COMPANY_INFO); }

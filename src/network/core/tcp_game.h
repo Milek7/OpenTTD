@@ -34,7 +34,7 @@ enum PacketGameType {
 	PACKET_SERVER_BANNED,                ///< The server has banned you.
 
 	/* Packets used by the client to join and an error message when the revision is wrong. */
-	PACKET_CLIENT_JOIN,                  ///< The client telling the server it wants to join.
+	PACKET_CLIENT_HELLO,                 ///< The client telling the server it wants to join, contains first step of Noise XX handshake.
 	PACKET_SERVER_ERROR,                 ///< Server sending an error message to the client.
 
 	/* Packets used for the pre-game lobby. */
@@ -50,6 +50,14 @@ enum PacketGameType {
 	 * sent as part of authenticating and getting
 	 * the map and other important data.
 	 */
+
+	/* Noise XX handshake. */
+	PACKET_SERVER_HANDSHAKE_2,           ///< Step 2.
+	PACKET_CLIENT_HANDSHAKE_3,           ///< Step 3.
+
+	PACKET_CIPHERTEXT,                   ///< All packets below are wrapped in PACKET_CIPHERTEXT.
+
+	PACKET_CLIENT_JOIN,                  ///< The client telling the server it wants to join.
 
 	/* After the join step, the first is checking NewGRFs. */
 	PACKET_SERVER_CHECK_NEWGRFS,         ///< Server sends NewGRF IDs and MD5 checksums for the client to check.
@@ -151,6 +159,12 @@ private:
 	NetworkClientInfo *info;  ///< Client info related to this socket
 
 protected:
+	hydro_kx_session_keypair session_kp;
+	uint64 msg_id_tx;
+	uint64 msg_id_rx;
+
+	virtual void SendPacket(Packet *p) override;
+
 	NetworkRecvStatus ReceiveInvalidPacket(PacketGameType type);
 
 	/**
@@ -167,7 +181,6 @@ protected:
 
 	/**
 	 * Try to join the server:
-	 * string  OpenTTD revision (norev000 if no revision).
 	 * string  Name of the client (max NETWORK_NAME_LENGTH).
 	 * uint8   ID of the company to play as (1..MAX_COMPANIES).
 	 * uint8   ID of the clients Language.
@@ -224,6 +237,35 @@ protected:
 	 * @param p The packet that was just received.
 	 */
 	virtual NetworkRecvStatus Receive_SERVER_CLIENT_INFO(Packet *p);
+
+	/**
+	 * The client telling the server it wants to join, contains first step of Noise XX handshake.
+	 * string  OpenTTD revision (norev000 if no revision).
+	 * 32 * uint8  Handshake data.
+	 * @param p The packet that was just received.
+	 */
+	virtual NetworkRecvStatus Receive_CLIENT_HELLO(Packet *p);
+
+	/**
+	 * Noise XX step 2.
+	 * 80 * uint8  Handshake data.
+	 * @param p The packet that was just received.
+	 */
+	virtual NetworkRecvStatus Receive_SERVER_HANDSHAKE_2(Packet *p);
+
+	/**
+	 * Noise XX step 3.
+	 * 48 * uint8  Handshake data.
+	 * @param p The packet that was just received.
+	 */
+	virtual NetworkRecvStatus Receive_CLIENT_HANDSHAKE_3(Packet *p);
+
+	/**
+	 * Ciphertext.
+	 * Contains some other encrypted packet.
+	 * @param p The packet that was just received.
+	 */
+	virtual NetworkRecvStatus Receive_CIPHERTEXT(Packet *p);
 
 	/**
 	 * Indication to the client that the server needs a game password.

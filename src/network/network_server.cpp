@@ -174,12 +174,12 @@ struct PacketWriter : SaveFilter {
 
 		byte *bufe = buf + size;
 		while (buf != bufe) {
-			size_t to_write = min(SEND_MTU - this->current->size, bufe - buf);
+			size_t to_write = min(SEND_MTU_ENC - this->current->size, bufe - buf);
 			memcpy(this->current->buffer + this->current->size, buf, to_write);
 			this->current->size += (PacketSize)to_write;
 			buf += to_write;
 
-			if (this->current->size == SEND_MTU) {
+			if (this->current->size == SEND_MTU_ENC) {
 				this->AppendQueue();
 				if (buf != bufe) this->current = new Packet(PACKET_SERVER_MAP_DATA);
 			}
@@ -877,25 +877,31 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_NEWGRFS_CHECKED
 		return this->SendNeedGamePassword();
 	}
 
-	if (Company::IsValidID(ci->client_playas) && !StrEmpty(_network_company_states[ci->client_playas].password)) {
-		return this->SendNeedCompanyPassword();
+	if (Company::IsValidID(ci->client_playas)) {
+		if (_network_company_states[ci->client_playas].pubkey_protected && memcmp(_network_company_states[ci->client_playas].pubkey, ci->pubkey, sizeof(ci->pubkey)) == 0) {
+			return this->SendWelcome();
+		}
+
+		if (!StrEmpty(_network_company_states[ci->client_playas].password)) {
+			return this->SendNeedCompanyPassword();
+		}
+
+		if (_network_company_states[ci->client_playas].pubkey_protected) {
+			return this->SendError(NETWORK_ERROR_WRONG_PASSWORD);
+		}
 	}
 
 	return this->SendWelcome();
 }
 
-NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_JOIN(Packet *p)
+NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_HELLO(Packet *p)
 {
 	if (this->status != STATUS_INACTIVE) {
 		/* Illegal call, return error and ignore the packet */
 		return this->SendError(NETWORK_ERROR_NOT_EXPECTED);
 	}
 
-	char name[NETWORK_CLIENT_NAME_LENGTH];
-	CompanyID playas;
-	NetworkLanguage client_lang;
 	char client_revision[NETWORK_REVISION_LENGTH];
-
 	p->Recv_string(client_revision, sizeof(client_revision));
 	uint32 newgrf_version = p->Recv_uint32();
 
@@ -904,6 +910,63 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_JOIN(Packet *p)
 		/* Different revisions!! */
 		return this->SendError(NETWORK_ERROR_WRONG_REVISION);
 	}
+
+	uint8 packet1[hydro_kx_XX_PACKET1BYTES];
+	uint8 packet2[hydro_kx_XX_PACKET2BYTES];
+
+	for (size_t i = 0; i < sizeof(packet1); i++) {
+		packet1[i] = p->Recv_uint8();
+	}
+
+	if (hydro_kx_xx_2(&_network_kx_state, packet2, packet1, nullptr, &_network_keypair) != 0) {
+		return this->SendError(NETWORK_ERROR_NOT_EXPECTED);
+	}
+
+	Packet *r = new Packet(PACKET_SERVER_HANDSHAKE_2);
+	for (size_t i = 0; i < sizeof(packet2); i++) {
+		r->Send_uint8(packet2[i]);
+	}
+
+	this->status = STATUS_HANDSHAKE;
+	this->SendPacket(r);
+
+	return NETWORK_RECV_STATUS_OKAY;
+}
+
+NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_HANDSHAKE_3(Packet *p)
+{
+	if (this->status != STATUS_HANDSHAKE) {
+		/* Illegal call, return error and ignore the packet */
+		return this->SendError(NETWORK_ERROR_NOT_EXPECTED);
+	}
+
+	uint8 packet3[hydro_kx_XX_PACKET3BYTES];
+
+	for (size_t i = 0; i < sizeof(packet3); i++) {
+		packet3[i] = p->Recv_uint8();
+	}
+
+	if (hydro_kx_xx_4(&_network_kx_state, &session_kp, pubkey, packet3, nullptr) != 0) {
+		return this->SendError(NETWORK_ERROR_NOT_EXPECTED);
+	}
+	msg_id_tx = 0;
+	msg_id_rx = 0;
+
+	this->status = STATUS_WAITJOIN;
+
+	return NETWORK_RECV_STATUS_OKAY;
+}
+
+NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_JOIN(Packet *p)
+{
+	if (this->status != STATUS_WAITJOIN) {
+		/* Illegal call, return error and ignore the packet */
+		return this->SendError(NETWORK_ERROR_NOT_EXPECTED);
+	}
+
+	char name[NETWORK_CLIENT_NAME_LENGTH];
+	CompanyID playas;
+	NetworkLanguage client_lang;
 
 	p->Recv_string(name, sizeof(name));
 	playas = (Owner)p->Recv_uint8();
@@ -945,6 +1008,7 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_JOIN(Packet *p)
 	strecpy(ci->client_name, name, lastof(ci->client_name));
 	ci->client_playas = playas;
 	ci->client_lang = client_lang;
+	memcpy(ci->pubkey, pubkey, sizeof(ci->pubkey));
 	DEBUG(desync, 1, "client: %08x; %02x; %02x; %02x", _date, _date_fract, (int)ci->client_playas, (int)ci->index);
 
 	/* Make sure companies to which people try to join are not autocleaned */
@@ -976,12 +1040,15 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_GAME_PASSWORD(P
 		return this->SendError(NETWORK_ERROR_WRONG_PASSWORD);
 	}
 
-	const NetworkClientInfo *ci = this->GetInfo();
-	if (Company::IsValidID(ci->client_playas) && !StrEmpty(_network_company_states[ci->client_playas].password)) {
-		return this->SendNeedCompanyPassword();
-	}
+	NetworkClientInfo *ci = this->GetInfo();
 
 	/* Valid password, allow user */
+	if (Company::IsValidID(ci->client_playas)) {
+		if (!StrEmpty(_network_company_states[ci->client_playas].password)) {
+			return this->SendNeedCompanyPassword();
+		}
+	}
+
 	return this->SendWelcome();
 }
 
@@ -997,11 +1064,15 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_COMPANY_PASSWOR
 	/* Check company password. Allow joining if we cleared the password meanwhile.
 	 * Also, check the company is still valid - client could be moved to spectators
 	 * in the middle of the authorization process */
-	CompanyID playas = this->GetInfo()->client_playas;
-	if (Company::IsValidID(playas) && !StrEmpty(_network_company_states[playas].password) &&
-			strcmp(password, _network_company_states[playas].password) != 0) {
-		/* Password is invalid */
-		return this->SendError(NETWORK_ERROR_WRONG_PASSWORD);
+	const NetworkClientInfo *ci = this->GetInfo();
+	if (Company::IsValidID(ci->client_playas)) {
+		if (!StrEmpty(_network_company_states[ci->client_playas].password) && strcmp(password, _network_company_states[ci->client_playas].password) == 0) {
+			return this->SendWelcome();
+		}
+
+		if (!StrEmpty(_network_company_states[ci->client_playas].password)) {
+			return this->SendError(NETWORK_ERROR_WRONG_PASSWORD);
+		}
 	}
 
 	return this->SendWelcome();
@@ -1878,11 +1949,13 @@ void NetworkServer_Tick(bool send_frame)
 				}
 				break;
 
+			case NetworkClientSocket::STATUS_HANDSHAKE:
+			case NetworkClientSocket::STATUS_WAITJOIN:
 			case NetworkClientSocket::STATUS_AUTH_GAME:
 			case NetworkClientSocket::STATUS_AUTH_COMPANY:
 				/* These don't block? */
 				if (lag > _settings_client.network.max_password_time) {
-					IConsolePrintF(CC_ERROR, "Client #%d is dropped because it took longer than %d ticks to enter the password", cs->client_id, _settings_client.network.max_password_time);
+					IConsolePrintF(CC_ERROR, "Client #%d is dropped because it took longer than %d ticks to authorize", cs->client_id, _settings_client.network.max_password_time);
 					cs->SendError(NETWORK_ERROR_TIMEOUT_PASSWORD);
 					continue;
 				}
@@ -1952,6 +2025,8 @@ void NetworkServerShowStatusToConsole()
 {
 	static const char * const stat_str[] = {
 		"inactive",
+		"crypto handshake",
+		"waiting for join",
 		"checking NewGRFs",
 		"authorizing (server password)",
 		"authorizing (company password)",

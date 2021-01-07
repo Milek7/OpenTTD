@@ -23,6 +23,8 @@ extern NetworkClientSocketPool _networkclientsocket_pool;
 /** Class for handling the server side of the game connection. */
 class ServerNetworkGameSocketHandler : public NetworkClientSocketPool::PoolItem<&_networkclientsocket_pool>, public NetworkGameSocketHandler, public TCPListenHandler<ServerNetworkGameSocketHandler, PACKET_SERVER_FULL, PACKET_SERVER_BANNED> {
 protected:
+	NetworkRecvStatus Receive_CLIENT_HELLO(Packet *p) override;
+	NetworkRecvStatus Receive_CLIENT_HANDSHAKE_3(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_JOIN(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_COMPANY_INFO(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_GAME_PASSWORD(Packet *p) override;
@@ -51,6 +53,8 @@ public:
 	/** Status of a client */
 	enum ClientStatus {
 		STATUS_INACTIVE,      ///< The client is not connected nor active.
+		STATUS_HANDSHAKE,     ///< We send PACKET_SERVER_HANDSHAKE_2 and waiting for PACKET_CLIENT_HANDSHAKE_3.
+		STATUS_WAITJOIN,
 		STATUS_NEWGRFS_CHECK, ///< The client is checking NewGRFs.
 		STATUS_AUTH_GAME,     ///< The client is authorizing with game (server) password.
 		STATUS_AUTH_COMPANY,  ///< The client is authorizing with company password.
@@ -63,12 +67,13 @@ public:
 		STATUS_END,           ///< Must ALWAYS be on the end of this list!! (period).
 	};
 
-	byte lag_test;               ///< Byte used for lag-testing the client
-	byte last_token;             ///< The last random token we did send to verify the client is listening
-	uint32 last_token_frame;     ///< The last frame we received the right token
-	ClientStatus status;         ///< Status of this client
-	CommandQueue outgoing_queue; ///< The command-queue awaiting delivery
-	int receive_limit;           ///< Amount of bytes that we can receive at this moment
+	byte lag_test;                         ///< Byte used for lag-testing the client
+	byte last_token;                       ///< The last random token we did send to verify the client is listening
+	uint32 last_token_frame;               ///< The last frame we received the right token
+	ClientStatus status;                   ///< Status of this client
+	CommandQueue outgoing_queue;           ///< The command-queue awaiting delivery
+	int receive_limit;                     ///< Amount of bytes that we can receive at this moment
+	uint8 pubkey[hydro_kx_PUBLICKEYBYTES]; ///< Client pubkey
 
 	struct PacketWriter *savegame; ///< Writer used to write the savegame.
 	NetworkAddress client_address; ///< IP-address of the client (so he can be banned)
