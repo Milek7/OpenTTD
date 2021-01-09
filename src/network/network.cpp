@@ -685,7 +685,7 @@ void NetworkGenerateKeypair()
 	hydro_hash_update(&hash, _network_key_material, sizeof(_network_key_material));
 	hydro_hash_final(&hash, key_seed, sizeof(key_seed));
 
-	hydro_sign_keygen_deterministic(&_network_keypair, key_seed);
+	hydro_kx_keygen_deterministic(&_network_keypair, key_seed);
 }
 
 /* Used by clients, to connect to a server */

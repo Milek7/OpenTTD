@@ -167,4 +167,7 @@ StringID GetNetworkErrorMsg(NetworkErrorCode err);
 bool NetworkFindName(char *new_name, const char *last);
 const char *GenerateCompanyPasswordHash(const char *password, const char *password_server_id, uint32 password_game_seed);
 
+extern struct hydro_kx_keypair _network_keypair;
+extern struct hydro_kx_state _network_kx_state;
+
 #endif /* NETWORK_INTERNAL_H */

@@ -23,9 +23,10 @@ extern NetworkClientSocketPool _networkclientsocket_pool;
 /** Class for handling the server side of the game connection. */
 class ServerNetworkGameSocketHandler : public NetworkClientSocketPool::PoolItem<&_networkclientsocket_pool>, public NetworkGameSocketHandler, public TCPListenHandler<ServerNetworkGameSocketHandler, PACKET_SERVER_FULL, PACKET_SERVER_BANNED> {
 protected:
+	NetworkRecvStatus Receive_CLIENT_HELLO(Packet *p) override;
+	NetworkRecvStatus Receive_CLIENT_HANDSHAKE_3(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_JOIN(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_COMPANY_INFO(Packet *p) override;
-	NetworkRecvStatus Receive_CLIENT_KEYAUTH(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_GAME_PASSWORD(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_COMPANY_PASSWORD(Packet *p) override;
 	NetworkRecvStatus Receive_CLIENT_GETMAP(Packet *p) override;
@@ -46,7 +47,6 @@ protected:
 	NetworkRecvStatus SendNewGRFCheck();
 	NetworkRecvStatus SendWelcome();
 	NetworkRecvStatus SendWait();
-	NetworkRecvStatus SendNeedKeyauth();
 	NetworkRecvStatus SendNeedGamePassword();
 	NetworkRecvStatus SendNeedCompanyPassword();
 
@@ -54,8 +54,9 @@ public:
 	/** Status of a client */
 	enum ClientStatus {
 		STATUS_INACTIVE,      ///< The client is not connected nor active.
+		STATUS_HANDSHAKE,     ///< We send PACKET_SERVER_HANDSHAKE_2 and waiting for PACKET_CLIENT_HANDSHAKE_3.
+		STATUS_WAITJOIN,
 		STATUS_NEWGRFS_CHECK, ///< The client is checking NewGRFs.
-		STATUS_AUTH_KEY,      ///< The client is requested to provide crypto challenge.
 		STATUS_AUTH_GAME,     ///< The client is authorizing with game (server) password.
 		STATUS_AUTH_COMPANY,  ///< The client is authorizing with company password.
 		STATUS_AUTHORIZED,    ///< The client is authorized.
@@ -73,7 +74,8 @@ public:
 	ClientStatus status;                   ///< Status of this client
 	CommandQueue outgoing_queue;           ///< The command-queue awaiting delivery
 	int receive_limit;                     ///< Amount of bytes that we can receive at this moment
-	uint8 challenge[CRYPTO_CHALLENGE_LEN]; ///< Random crypto challenge that we sent to the client
+	uint8 pubkey[hydro_kx_PUBLICKEYBYTES]; ///< Client pubkey
+	hydro_kx_state kx_state;               ///< Key exchange state
 
 	struct PacketWriter *savegame; ///< Writer used to write the savegame.
 	NetworkAddress client_address; ///< IP-address of the client (so he can be banned)

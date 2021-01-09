@@ -22,9 +22,9 @@ private:
 	enum ServerStatus {
 		STATUS_INACTIVE,      ///< The client is not connected nor active.
 		STATUS_COMPANY_INFO,  ///< We are trying to get company information.
+		STATUS_HANDSHAKE,     ///< We sent PACKET_CLIENT_HELLO packet and waiting for PACKET_SERVER_HANDSHAKE_2.
 		STATUS_JOIN,          ///< We are trying to join a server.
 		STATUS_NEWGRFS_CHECK, ///< Last action was checking NewGRFs.
-		STATUS_AUTH_KEY,      ///< Last action was requesting crypto challenge.
 		STATUS_AUTH_GAME,     ///< Last action was requesting game (server) password.
 		STATUS_AUTH_COMPANY,  ///< Last action was requesting company password.
 		STATUS_AUTHORIZED,    ///< The client is authorized at the server.
@@ -41,13 +41,13 @@ protected:
 	friend void NetworkClose(bool close_admins);
 	static ClientNetworkGameSocketHandler *my_client; ///< This is us!
 
+	NetworkRecvStatus Receive_SERVER_HANDSHAKE_2(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_FULL(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_BANNED(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_ERROR(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_COMPANY_INFO(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_CLIENT_INFO(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_NEED_GAME_PASSWORD(Packet *p) override;
-	NetworkRecvStatus Receive_SERVER_NEED_KEYAUTH(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_NEED_COMPANY_PASSWORD(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_WELCOME(Packet *p) override;
 	NetworkRecvStatus Receive_SERVER_WAIT(Packet *p) override;
@@ -83,6 +83,7 @@ public:
 
 	static NetworkRecvStatus SendCompanyInformationQuery();
 
+	static NetworkRecvStatus SendHello();
 	static NetworkRecvStatus SendJoin();
 	static NetworkRecvStatus SendCommand(const CommandPacket *cp);
 	static NetworkRecvStatus SendError(NetworkErrorCode errorno);
@@ -119,6 +120,5 @@ extern const char *_network_join_server_password;
 extern const char *_network_join_company_password;
 
 extern uint8 _network_key_material[hydro_sign_SEEDBYTES];
-extern struct hydro_sign_keypair _network_keypair;
 
 #endif /* NETWORK_CLIENT_H */
