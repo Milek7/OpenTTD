@@ -31,7 +31,6 @@
 #include <mutex>
 #include <condition_variable>
 #include <GL/gl.h>
-#include "../3rdparty/opengl/glext.h"
 #include "opengl.h"
 #ifdef __EMSCRIPTEN__
 #	include <emscripten.h>

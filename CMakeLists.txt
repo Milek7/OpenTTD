@@ -135,10 +135,6 @@ if(NOT WIN32)
     endif()
 endif()
 
-if(NOT EMSCRIPTEN)
-    find_package(OpenGL COMPONENTS OpenGL)
-endif()
-
 if(MSVC)
     find_package(Editbin REQUIRED)
 endif()
@@ -249,7 +245,6 @@ if(NOT OPTION_DEDICATED)
     link_package(Fontconfig TARGET Fontconfig::Fontconfig)
     link_package(ICU_lx)
     link_package(ICU_i18n)
-    link_package(OpenGL TARGET OpenGL::GL)
 endif()
 
 if(APPLE)

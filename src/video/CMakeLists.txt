@@ -10,7 +10,6 @@ if(NOT OPTION_DEDICATED)
     add_files(
         opengl.cpp
         opengl.h
-        CONDITION OPENGL_FOUND
     )
 
     add_files(
@@ -30,7 +29,6 @@ if(NOT OPTION_DEDICATED)
     add_files(
         sdl2_opengl_v.cpp
         sdl2_opengl_v.h
-        CONDITION SDL2_FOUND AND OPENGL_FOUND
     )
 
     add_files(

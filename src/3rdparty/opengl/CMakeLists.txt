@@ -1,10 +1,9 @@
 add_files(
-    khrplatform.h
-    glext.h
-    CONDITION OPENGL_FOUND
+    include/KHR/khrplatform.h
+    src/glad.c
 )
 
 add_files(
     wglext.h
-    CONDITION WIN32 AND OPENGL_FOUND
+    CONDITION WIN32
 )

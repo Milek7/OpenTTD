@@ -18,12 +18,7 @@
 #	include <windows.h>
 #endif
 
-#if defined(__APPLE__)
-#	include <OpenGL/gl3.h>
-#else
-#	include <GL/gl.h>
-#endif
-#include "../3rdparty/opengl/glext.h"
+#include "../3rdparty/opengl/include/glad/glad.h"
 
 #include "opengl.h"
 #include "../core/geometry_func.hpp"
@@ -39,7 +34,6 @@
 
 
 #include "../safeguards.h"
-
 
 static PFNGLDEBUGMESSAGECONTROLPROC _glDebugMessageControl;
 static PFNGLDEBUGMESSAGECALLBACKPROC _glDebugMessageCallback;
@@ -100,90 +94,13 @@ static const int MAX_CACHED_CURSORS = 48;
 
 /* static */ OpenGLBackend *OpenGLBackend::instance = nullptr;
 
-GetOGLProcAddressProc GetOGLProcAddress;
-
-/**
- * Find a substring in a string made of space delimited elements. The substring
- * has to match the complete element, partial matches don't count.
- * @param string List of space delimited elements.
- * @param substring Substring to find.
- * @return Pointer to the start of the match or nullptr if the substring is not present.
- */
-const char *FindStringInExtensionList(const char *string, const char *substring)
-{
-	while (1) {
-		/* Is the extension string present at all? */
-		const char *pos = strstr(string, substring);
-		if (pos == nullptr) break;
-
-		/* Is this a real match, i.e. are the chars before and after the matched string
-		 * indeed spaces (or the start or end of the string, respectively)? */
-		const char *end = pos + strlen(substring);
-		if ((pos == string || pos[-1] == ' ') && (*end == ' ' || *end == '\0')) return pos;
-
-		/* False hit, try again for the remaining string. */
-		string = end;
-	}
-
-	return nullptr;
-}
-
-/**
- * Check if an OpenGL extension is supported by the current context.
- * @param extension The extension string to test.
- * @return True if the extension is supported, false if not.
- */
-static bool IsOpenGLExtensionSupported(const char *extension)
-{
-	static PFNGLGETSTRINGIPROC glGetStringi = nullptr;
-	static bool glGetStringi_loaded = false;
-
-	/* Starting with OpenGL 3.0 the preferred API to get the extensions
-	 * has changed. Try to load the required function once. */
-	if (!glGetStringi_loaded) {
-		if (IsOpenGLVersionAtLeast(3, 0)) glGetStringi = (PFNGLGETSTRINGIPROC)GetOGLProcAddress("glGetStringi");
-		glGetStringi_loaded = true;
-	}
-
-	if (glGetStringi != nullptr) {
-		/* New style: Each supported extension can be queried and compared independently. */
-		GLint num_exts;
-		glGetIntegerv(GL_NUM_EXTENSIONS, &num_exts);
-
-		for (GLint i = 0; i < num_exts; i++) {
-			const char *entry = (const char *)glGetStringi(GL_EXTENSIONS, i);
-			if (strcmp(entry, extension) == 0) return true;
-		}
-	} else {
-		/* Old style: A single, space-delimited string for all extensions. */
-		return FindStringInExtensionList((const char *)glGetString(GL_EXTENSIONS), extension) != nullptr;
-	}
-
-	return false;
-}
-
-static byte _gl_major_ver = 0; ///< Major OpenGL version.
-static byte _gl_minor_ver = 0; ///< Minor OpenGL version.
-
-/**
- * Check if the current OpenGL version is equal or higher than a given one.
- * @param major Minimal major version.
- * @param minor Minimal minor version.
- * @pre OpenGL was initialized.
- * @return True if the OpenGL version is equal or higher than the requested one.
- */
-bool IsOpenGLVersionAtLeast(byte major, byte minor)
-{
-	return (_gl_major_ver > major) || (_gl_major_ver == major && _gl_minor_ver >= minor);
-}
-
 /** Bind texture-related extension functions. */
 static bool BindTextureExtensions()
 {
-	if (IsOpenGLVersionAtLeast(1, 3)) {
-		_glActiveTexture = (PFNGLACTIVETEXTUREPROC)GetOGLProcAddress("glActiveTexture");
+	if (GLAD_GL_VERSION_1_3) {
+		_glActiveTexture = glActiveTexture;
 	} else {
-		_glActiveTexture = (PFNGLACTIVETEXTUREPROC)GetOGLProcAddress("glActiveTextureARB");
+		_glActiveTexture = glActiveTextureARB;
 	}
 
 	return _glActiveTexture != nullptr;
@@ -192,24 +109,24 @@ static bool BindTextureExtensions()
 /** Bind vertex buffer object extension functions. */
 static bool BindVBOExtension()
 {
-	if (IsOpenGLVersionAtLeast(1, 5)) {
-		_glGenBuffers = (PFNGLGENBUFFERSPROC)GetOGLProcAddress("glGenBuffers");
-		_glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)GetOGLProcAddress("glDeleteBuffers");
-		_glBindBuffer = (PFNGLBINDBUFFERPROC)GetOGLProcAddress("glBindBuffer");
-		_glBufferData = (PFNGLBUFFERDATAPROC)GetOGLProcAddress("glBufferData");
-		_glMapBuffer = (PFNGLMAPBUFFERPROC)GetOGLProcAddress("glMapBuffer");
-		_glUnmapBuffer = (PFNGLUNMAPBUFFERPROC)GetOGLProcAddress("glUnmapBuffer");
+	if (GLAD_GL_VERSION_1_5) {
+		_glGenBuffers = glGenBuffers;
+		_glDeleteBuffers = glDeleteBuffers;
+		_glBindBuffer = glBindBuffer;
+		_glBufferData = glBufferData;
+		_glMapBuffer = glMapBuffer;
+		_glUnmapBuffer = glUnmapBuffer;
 	} else {
-		_glGenBuffers = (PFNGLGENBUFFERSPROC)GetOGLProcAddress("glGenBuffersARB");
-		_glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)GetOGLProcAddress("glDeleteBuffersARB");
-		_glBindBuffer = (PFNGLBINDBUFFERPROC)GetOGLProcAddress("glBindBufferARB");
-		_glBufferData = (PFNGLBUFFERDATAPROC)GetOGLProcAddress("glBufferDataARB");
-		_glMapBuffer = (PFNGLMAPBUFFERPROC)GetOGLProcAddress("glMapBufferARB");
-		_glUnmapBuffer = (PFNGLUNMAPBUFFERPROC)GetOGLProcAddress("glUnmapBufferARB");
+		_glGenBuffers = glGenBuffersARB;
+		_glDeleteBuffers = glDeleteBuffersARB;
+		_glBindBuffer = glBindBufferARB;
+		_glBufferData = glBufferDataARB;
+		_glMapBuffer = glMapBufferARB;
+		_glUnmapBuffer = glUnmapBufferARB;
 	}
 
-	if (IsOpenGLVersionAtLeast(4, 3) || IsOpenGLExtensionSupported("GL_ARB_clear_buffer_object")) {
-		_glClearBufferSubData = (PFNGLCLEARBUFFERSUBDATAPROC)GetOGLProcAddress("glClearBufferSubData");
+	if (GLAD_GL_VERSION_4_3 || GLAD_GL_ARB_clear_buffer_object) {
+		_glClearBufferSubData = glClearBufferSubData;
 	} else {
 		_glClearBufferSubData = nullptr;
 	}
@@ -223,14 +140,14 @@ static bool BindVBAExtension()
 	/* The APPLE and ARB variants have different semantics (that don't matter for us).
 	 *  Successfully getting pointers to one variant doesn't mean it is supported for
 	 *  the current context. Always check the extension strings as well. */
-	if (IsOpenGLVersionAtLeast(3, 0) || IsOpenGLExtensionSupported("GL_ARB_vertex_array_object")) {
-		_glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)GetOGLProcAddress("glGenVertexArrays");
-		_glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)GetOGLProcAddress("glDeleteVertexArrays");
-		_glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)GetOGLProcAddress("glBindVertexArray");
-	} else if (IsOpenGLExtensionSupported("GL_APPLE_vertex_array_object")) {
-		_glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)GetOGLProcAddress("glGenVertexArraysAPPLE");
-		_glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)GetOGLProcAddress("glDeleteVertexArraysAPPLE");
-		_glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)GetOGLProcAddress("glBindVertexArrayAPPLE");
+	if (GLAD_GL_VERSION_3_0 || GLAD_GL_ARB_vertex_array_object) {
+		_glGenVertexArrays = glGenVertexArrays;
+		_glDeleteVertexArrays = glDeleteVertexArrays;
+		_glBindVertexArray = glBindVertexArray;
+	} else if (GLAD_GL_APPLE_vertex_array_object) {
+		_glGenVertexArrays = glGenVertexArraysAPPLE;
+		_glDeleteVertexArrays = glDeleteVertexArraysAPPLE;
+		_glBindVertexArray = glBindVertexArrayAPPLE;
 	}
 
 	return _glGenVertexArrays != nullptr && _glDeleteVertexArrays != nullptr && _glBindVertexArray != nullptr;
@@ -239,62 +156,62 @@ static bool BindVBAExtension()
 /** Bind extension functions for shader support. */
 static bool BindShaderExtensions()
 {
-	if (IsOpenGLVersionAtLeast(2, 0)) {
-		_glCreateProgram = (PFNGLCREATEPROGRAMPROC)GetOGLProcAddress("glCreateProgram");
-		_glDeleteProgram = (PFNGLDELETEPROGRAMPROC)GetOGLProcAddress("glDeleteProgram");
-		_glLinkProgram = (PFNGLLINKPROGRAMPROC)GetOGLProcAddress("glLinkProgram");
-		_glUseProgram = (PFNGLUSEPROGRAMPROC)GetOGLProcAddress("glUseProgram");
-		_glGetProgramiv = (PFNGLGETPROGRAMIVPROC)GetOGLProcAddress("glGetProgramiv");
-		_glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)GetOGLProcAddress("glGetProgramInfoLog");
-		_glCreateShader = (PFNGLCREATESHADERPROC)GetOGLProcAddress("glCreateShader");
-		_glDeleteShader = (PFNGLDELETESHADERPROC)GetOGLProcAddress("glDeleteShader");
-		_glShaderSource = (PFNGLSHADERSOURCEPROC)GetOGLProcAddress("glShaderSource");
-		_glCompileShader = (PFNGLCOMPILESHADERPROC)GetOGLProcAddress("glCompileShader");
-		_glAttachShader = (PFNGLATTACHSHADERPROC)GetOGLProcAddress("glAttachShader");
-		_glGetShaderiv = (PFNGLGETSHADERIVPROC)GetOGLProcAddress("glGetShaderiv");
-		_glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)GetOGLProcAddress("glGetShaderInfoLog");
-		_glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)GetOGLProcAddress("glGetUniformLocation");
-		_glUniform1i = (PFNGLUNIFORM1IPROC)GetOGLProcAddress("glUniform1i");
-		_glUniform1f = (PFNGLUNIFORM1FPROC)GetOGLProcAddress("glUniform1f");
-		_glUniform2f = (PFNGLUNIFORM2FPROC)GetOGLProcAddress("glUniform2f");
-		_glUniform4f = (PFNGLUNIFORM4FPROC)GetOGLProcAddress("glUniform4f");
+	if (GLAD_GL_VERSION_2_0) {
+		_glCreateProgram = glCreateProgram;
+		_glDeleteProgram = glDeleteProgram;
+		_glLinkProgram = glLinkProgram;
+		_glUseProgram = glUseProgram;
+		_glGetProgramiv = glGetProgramiv;
+		_glGetProgramInfoLog = glGetProgramInfoLog;
+		_glCreateShader = glCreateShader;
+		_glDeleteShader = glDeleteShader;
+		_glShaderSource = glShaderSource;
+		_glCompileShader = glCompileShader;
+		_glAttachShader = glAttachShader;
+		_glGetShaderiv = glGetShaderiv;
+		_glGetShaderInfoLog = glGetShaderInfoLog;
+		_glGetUniformLocation = glGetUniformLocation;
+		_glUniform1i = glUniform1i;
+		_glUniform1f = glUniform1f;
+		_glUniform2f = glUniform2f;
+		_glUniform4f = glUniform4f;
 
-		_glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC)GetOGLProcAddress("glGetAttribLocation");
-		_glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)GetOGLProcAddress("glEnableVertexAttribArray");
-		_glDisableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)GetOGLProcAddress("glDisableVertexAttribArray");
-		_glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERARBPROC)GetOGLProcAddress("glVertexAttribPointer");
+		_glGetAttribLocation = glGetAttribLocation;
+		_glEnableVertexAttribArray = glEnableVertexAttribArray;
+		_glDisableVertexAttribArray = glDisableVertexAttribArray;
+		_glVertexAttribPointer = glVertexAttribPointer;
 	} else {
 		/* In the ARB extension programs and shaders are in the same object space. */
-		_glCreateProgram = (PFNGLCREATEPROGRAMPROC)GetOGLProcAddress("glCreateProgramObjectARB");
-		_glDeleteProgram = (PFNGLDELETEPROGRAMPROC)GetOGLProcAddress("glDeleteObjectARB");
-		_glLinkProgram = (PFNGLLINKPROGRAMPROC)GetOGLProcAddress("glLinkProgramARB");
-		_glUseProgram = (PFNGLUSEPROGRAMPROC)GetOGLProcAddress("glUseProgramObjectARB");
-		_glGetProgramiv = (PFNGLGETPROGRAMIVPROC)GetOGLProcAddress("glGetObjectParameterivARB");
-		_glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)GetOGLProcAddress("glGetInfoLogARB");
-		_glCreateShader = (PFNGLCREATESHADERPROC)GetOGLProcAddress("glCreateShaderObjectARB");
-		_glDeleteShader = (PFNGLDELETESHADERPROC)GetOGLProcAddress("glDeleteObjectARB");
-		_glShaderSource = (PFNGLSHADERSOURCEPROC)GetOGLProcAddress("glShaderSourceARB");
-		_glCompileShader = (PFNGLCOMPILESHADERPROC)GetOGLProcAddress("glCompileShaderARB");
-		_glAttachShader = (PFNGLATTACHSHADERPROC)GetOGLProcAddress("glAttachObjectARB");
-		_glGetShaderiv = (PFNGLGETSHADERIVPROC)GetOGLProcAddress("glGetObjectParameterivARB");
-		_glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)GetOGLProcAddress("glGetInfoLogARB");
-		_glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)GetOGLProcAddress("glGetUniformLocationARB");
-		_glUniform1i = (PFNGLUNIFORM1IPROC)GetOGLProcAddress("glUniform1iARB");
-		_glUniform1f = (PFNGLUNIFORM1FPROC)GetOGLProcAddress("glUniform1fARB");
-		_glUniform2f = (PFNGLUNIFORM2FPROC)GetOGLProcAddress("glUniform2fARB");
-		_glUniform4f = (PFNGLUNIFORM4FPROC)GetOGLProcAddress("glUniform4fARB");
+		_glCreateProgram = glCreateProgramObjectARB;
+		_glDeleteProgram = glDeleteObjectARB;
+		_glLinkProgram = glLinkProgramARB;
+		_glUseProgram = glUseProgramObjectARB;
+		_glGetProgramiv = glGetObjectParameterivARB;
+		_glGetProgramInfoLog = glGetInfoLogARB;
+		_glCreateShader = glCreateShaderObjectARB;
+		_glDeleteShader = glDeleteObjectARB;
+		_glShaderSource = (PFNGLSHADERSOURCEPROC)glShaderSourceARB;
+		_glCompileShader = glCompileShaderARB;
+		_glAttachShader = glAttachObjectARB;
+		_glGetShaderiv = glGetObjectParameterivARB;
+		_glGetShaderInfoLog = glGetInfoLogARB;
+		_glGetUniformLocation = glGetUniformLocationARB;
+		_glUniform1i = glUniform1iARB;
+		_glUniform1f = glUniform1fARB;
+		_glUniform2f = glUniform2fARB;
+		_glUniform4f = glUniform4fARB;
 
-		_glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC)GetOGLProcAddress("glGetAttribLocationARB");
-		_glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)GetOGLProcAddress("glEnableVertexAttribArrayARB");
-		_glDisableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)GetOGLProcAddress("glDisableVertexAttribArrayARB");
-		_glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERARBPROC)GetOGLProcAddress("glVertexAttribPointerARB");
+		_glGetAttribLocation = glGetAttribLocationARB;
+		_glEnableVertexAttribArray = glEnableVertexAttribArrayARB;
+		_glDisableVertexAttribArray = glDisableVertexAttribArrayARB;
+		_glVertexAttribPointer = glVertexAttribPointerARB;
 	}
 
 	/* Bind functions only needed when using GLSL 1.50 shaders. */
-	if (IsOpenGLVersionAtLeast(3, 0)) {
-		_glBindFragDataLocation = (PFNGLBINDFRAGDATALOCATIONPROC)GetOGLProcAddress("glBindFragDataLocation");
-	} else if (IsOpenGLExtensionSupported("GL_EXT_gpu_shader4")) {
-		_glBindFragDataLocation = (PFNGLBINDFRAGDATALOCATIONPROC)GetOGLProcAddress("glBindFragDataLocationEXT");
+	if (GLAD_GL_VERSION_3_0) {
+		_glBindFragDataLocation = glBindFragDataLocation;
+	} else if (GLAD_GL_EXT_gpu_shader4) {
+		_glBindFragDataLocation = glBindFragDataLocationEXT;
 	} else {
 		_glBindFragDataLocation = nullptr;
 	}
@@ -310,17 +227,17 @@ static bool BindShaderExtensions()
 static bool BindPersistentBufferExtensions()
 {
 	/* Optional functions for persistent buffer mapping. */
-	if (IsOpenGLVersionAtLeast(3, 0)) {
-		_glMapBufferRange = (PFNGLMAPBUFFERRANGEPROC)GetOGLProcAddress("glMapBufferRange");
+	if (GLAD_GL_VERSION_3_0) {
+		_glMapBufferRange = glMapBufferRange;
 	}
-	if (IsOpenGLVersionAtLeast(4, 4) || IsOpenGLExtensionSupported("GL_ARB_buffer_storage")) {
-		_glBufferStorage = (PFNGLBUFFERSTORAGEPROC)GetOGLProcAddress("glBufferStorage");
+	if (GLAD_GL_VERSION_4_4 || GLAD_GL_ARB_buffer_storage) {
+		_glBufferStorage = glBufferStorage;
 	}
 #ifndef NO_GL_BUFFER_SYNC
-	if (IsOpenGLVersionAtLeast(3, 2) || IsOpenGLExtensionSupported("GL_ARB_sync")) {
-		_glClientWaitSync = (PFNGLCLIENTWAITSYNCPROC)GetOGLProcAddress("glClientWaitSync");
-		_glFenceSync = (PFNGLFENCESYNCPROC)GetOGLProcAddress("glFenceSync");
-		_glDeleteSync = (PFNGLDELETESYNCPROC)GetOGLProcAddress("glDeleteSync");
+	if (GLAD_GL_VERSION_3_2 || GLAD_GL_ARB_sync) {
+		_glClientWaitSync = glClientWaitSync;
+		_glFenceSync = glFenceSync;
+		_glDeleteSync = glDeleteSync;
 	}
 #endif
 
@@ -361,12 +278,12 @@ void SetupDebugOutput()
 #ifndef NO_DEBUG_MESSAGES
 	if (_debug_driver_level < 6) return;
 
-	if (IsOpenGLVersionAtLeast(4, 3)) {
-		_glDebugMessageControl = (PFNGLDEBUGMESSAGECONTROLPROC)GetOGLProcAddress("glDebugMessageControl");
-		_glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)GetOGLProcAddress("glDebugMessageCallback");
-	} else if (IsOpenGLExtensionSupported("GL_ARB_debug_output")) {
-		_glDebugMessageControl = (PFNGLDEBUGMESSAGECONTROLPROC)GetOGLProcAddress("glDebugMessageControlARB");
-		_glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)GetOGLProcAddress("glDebugMessageCallbackARB");
+	if (GLAD_GL_VERSION_4_3) {
+		_glDebugMessageControl = glDebugMessageControl;
+		_glDebugMessageCallback = glDebugMessageCallback;
+	} else if (GLAD_GL_ARB_debug_output) {
+		_glDebugMessageControl = glDebugMessageControlARB;
+		_glDebugMessageCallback = glDebugMessageCallbackARB;
 	}
 
 	if (_glDebugMessageControl != nullptr && _glDebugMessageCallback != nullptr) {
@@ -394,7 +311,7 @@ void SetupDebugOutput()
 {
 	if (OpenGLBackend::instance != nullptr) OpenGLBackend::Destroy();
 
-	GetOGLProcAddress = get_proc;
+	if (!gladLoadGLLoader((GLADloadproc)get_proc)) return "Failed to load GL functions";
 
 	OpenGLBackend::instance = new OpenGLBackend();
 	return OpenGLBackend::instance->Init();
@@ -455,35 +372,31 @@ const char *OpenGLBackend::Init()
 
 	DEBUG(driver, 1, "OpenGL driver: %s - %s (%s)", vend, renderer, ver);
 
-	const char *minor = strchr(ver, '.');
-	_gl_major_ver = atoi(ver);
-	_gl_minor_ver = minor != nullptr ? atoi(minor + 1) : 0;
-
 	SetupDebugOutput();
 
 	/* OpenGL 1.3 is the absolute minimum. */
-	if (!IsOpenGLVersionAtLeast(1, 3)) return "OpenGL version >= 1.3 required";
+	if (!GLAD_GL_VERSION_1_3) return "OpenGL version >= 1.3 required";
 	/* Check for non-power-of-two texture support. */
-	if (!IsOpenGLVersionAtLeast(2, 0) && !IsOpenGLExtensionSupported("GL_ARB_texture_non_power_of_two")) return "Non-power-of-two textures not supported";
+	if (!GLAD_GL_VERSION_2_0 && !GLAD_GL_ARB_texture_non_power_of_two) return "Non-power-of-two textures not supported";
 	/* Check for single element texture formats. */
-	if (!IsOpenGLVersionAtLeast(3, 0) && !IsOpenGLExtensionSupported("GL_ARB_texture_rg")) return "Single element texture formats not supported";
+	if (!GLAD_GL_VERSION_3_0 && !GLAD_GL_ARB_texture_rg) return "Single element texture formats not supported";
 	if (!BindTextureExtensions()) return "Failed to bind texture extension functions";
 	/* Check for vertex buffer objects. */
-	if (!IsOpenGLVersionAtLeast(1, 5) && !IsOpenGLExtensionSupported("ARB_vertex_buffer_object")) return "Vertex buffer objects not supported";
+	if (!GLAD_GL_VERSION_1_5 && !GLAD_GL_ARB_vertex_buffer_object) return "Vertex buffer objects not supported";
 	if (!BindVBOExtension()) return "Failed to bind VBO extension functions";
 	/* Check for pixel buffer objects. */
-	if (!IsOpenGLVersionAtLeast(2, 1) && !IsOpenGLExtensionSupported("GL_ARB_pixel_buffer_object")) return "Pixel buffer objects not supported";
+	if (!GLAD_GL_VERSION_2_1 && !GLAD_GL_ARB_pixel_buffer_object) return "Pixel buffer objects not supported";
 	/* Check for vertex array objects. */
-	if (!IsOpenGLVersionAtLeast(3, 0) && (!IsOpenGLExtensionSupported("GL_ARB_vertex_array_object") || !IsOpenGLExtensionSupported("GL_APPLE_vertex_array_object"))) return "Vertex array objects not supported";
+	if (!GLAD_GL_VERSION_3_0 && (!GL_ARB_vertex_array_object || !GL_APPLE_vertex_array_object)) return "Vertex array objects not supported";
 	if (!BindVBAExtension()) return "Failed to bind VBA extension functions";
 	/* Check for shader objects. */
-	if (!IsOpenGLVersionAtLeast(2, 0) && (!IsOpenGLExtensionSupported("GL_ARB_shader_objects") || !IsOpenGLExtensionSupported("GL_ARB_fragment_shader") || !IsOpenGLExtensionSupported("GL_ARB_vertex_shader"))) return "No shader support";
+	if (!GLAD_GL_VERSION_2_0 && (!GLAD_GL_ARB_shader_objects || !GLAD_GL_ARB_fragment_shader || !GLAD_GL_ARB_vertex_shader)) return "No shader support";
 	if (!BindShaderExtensions()) return "Failed to bind shader extension functions";
-	if (IsOpenGLVersionAtLeast(3, 2) && _glBindFragDataLocation == nullptr) return "OpenGL claims to support version 3.2 but doesn't have glBindFragDataLocation";
+	if (GLAD_GL_VERSION_3_2 && _glBindFragDataLocation == nullptr) return "OpenGL claims to support version 3.2 but doesn't have glBindFragDataLocation";
 
-	this->persistent_mapping_supported = IsOpenGLVersionAtLeast(3, 0) && (IsOpenGLVersionAtLeast(4, 4) || IsOpenGLExtensionSupported("GL_ARB_buffer_storage"));
+	this->persistent_mapping_supported = GLAD_GL_VERSION_3_0 && (GLAD_GL_VERSION_4_4 || GLAD_GL_ARB_buffer_storage);
 #ifndef NO_GL_BUFFER_SYNC
-	this->persistent_mapping_supported = this->persistent_mapping_supported && (IsOpenGLVersionAtLeast(3, 2) || IsOpenGLExtensionSupported("GL_ARB_sync"));
+	this->persistent_mapping_supported = this->persistent_mapping_supported && (GLAD_GL_VERSION_3_2 || GLAD_GL_ARB_sync);
 #endif
 
 	if (this->persistent_mapping_supported && !BindPersistentBufferExtensions()) {
@@ -684,7 +597,7 @@ bool OpenGLBackend::InitShaders()
 	int glsl_major  = ver[0] - '0';
 	int glsl_minor = ver[2] - '0';
 
-	bool glsl_150 = (IsOpenGLVersionAtLeast(3, 2) || glsl_major > 1 || (glsl_major == 1 && glsl_minor >= 5)) && _glBindFragDataLocation != nullptr;
+	bool glsl_150 = (GLAD_GL_VERSION_3_2 || glsl_major > 1 || (glsl_major == 1 && glsl_minor >= 5)) && _glBindFragDataLocation != nullptr;
 
 	/* Create vertex shader. */
 	GLuint vert_shader = _glCreateShader(GL_VERTEX_SHADER);

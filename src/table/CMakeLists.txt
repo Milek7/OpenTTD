@@ -88,5 +88,4 @@ add_files(
 
 add_files(
     opengl_shader.h
-    CONDITION OPENGL_FOUND
 )

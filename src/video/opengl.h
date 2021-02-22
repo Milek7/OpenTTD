@@ -21,9 +21,6 @@
 typedef void (*OGLProc)();
 typedef OGLProc (*GetOGLProcAddressProc)(const char *proc);
 
-bool IsOpenGLVersionAtLeast(byte major, byte minor);
-const char *FindStringInExtensionList(const char *string, const char *substring);
-
 class OpenGLSprite;
 
 /** Platform-independent back-end class for OpenGL video drivers. */
